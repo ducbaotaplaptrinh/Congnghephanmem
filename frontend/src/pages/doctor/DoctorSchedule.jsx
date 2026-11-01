@@ -1,24 +1,28 @@
 import DoctorLayout from '../../components/layout/DoctorLayout'
+import { useAuth } from '../../hooks/useAuth'
 
 const WEEK_SCHEDULE = [
-  { day: 'Thứ Hai', date: '05/10/2026', morning: { room: 'P.102 - Khám Tim Mạch', time: '07:30 - 11:30', status: 'COMPLETED' }, afternoon: { room: 'P.102 - Khám Tim Mạch', time: '13:30 - 17:00', status: 'COMPLETED' } },
-  { day: 'Thứ Ba', date: '06/10/2026', morning: { room: 'P.102 - Khám Tim Mạch', time: '07:30 - 11:30', status: 'COMPLETED' }, afternoon: { room: 'Hội Chẩn Chuyên Môn', time: '14:00 - 16:30', status: 'COMPLETED' } },
-  { day: 'Thứ Tư', date: '07/10/2026', morning: { room: 'P.102 - Khám Tim Mạch', time: '07:30 - 11:30', status: 'COMPLETED' }, afternoon: { room: 'Nghỉ ca', time: '-', status: 'OFF' } },
-  { day: 'Thứ Năm', date: '08/10/2026', morning: { room: 'P.102 - Khám Tim Mạch', time: '07:30 - 11:30', status: 'COMPLETED' }, afternoon: { room: 'P.102 - Khám Tim Mạch', time: '13:30 - 17:00', status: 'COMPLETED' } },
-  { day: 'Thứ Sáu', date: '09/10/2026', morning: { room: 'P.102 - Khám Tim Mạch', time: '07:30 - 11:30', status: 'COMPLETED' }, afternoon: { room: 'P.102 - Khám Tim Mạch', time: '13:30 - 17:00', status: 'COMPLETED' } },
-  { day: 'Thứ Bảy (Hôm nay)', date: '10/10/2026', morning: { room: 'P.102 - Khám Tim Mạch', time: '07:30 - 11:30', status: 'ACTIVE' }, afternoon: { room: 'Trực Khối Nội Viện', time: '13:30 - 17:00', status: 'UPCOMING' } },
+  { day: 'Thứ Hai', date: '05/10/2026', morning: { room: 'P.102 - Phòng Khám Bệnh', time: '07:30 - 11:30', status: 'COMPLETED' }, afternoon: { room: 'P.102 - Phòng Khám Bệnh', time: '13:30 - 17:00', status: 'COMPLETED' } },
+  { day: 'Thứ Ba', date: '06/10/2026', morning: { room: 'P.102 - Phòng Khám Bệnh', time: '07:30 - 11:30', status: 'COMPLETED' }, afternoon: { room: 'Hội Chẩn Chuyên Môn', time: '14:00 - 16:30', status: 'COMPLETED' } },
+  { day: 'Thứ Tư', date: '07/10/2026', morning: { room: 'P.102 - Phòng Khám Bệnh', time: '07:30 - 11:30', status: 'COMPLETED' }, afternoon: { room: 'Nghỉ ca', time: '-', status: 'OFF' } },
+  { day: 'Thứ Năm', date: '08/10/2026', morning: { room: 'P.102 - Phòng Khám Bệnh', time: '07:30 - 11:30', status: 'COMPLETED' }, afternoon: { room: 'P.102 - Phòng Khám Bệnh', time: '13:30 - 17:00', status: 'COMPLETED' } },
+  { day: 'Thứ Sáu', date: '09/10/2026', morning: { room: 'P.102 - Phòng Khám Bệnh', time: '07:30 - 11:30', status: 'COMPLETED' }, afternoon: { room: 'P.102 - Phòng Khám Bệnh', time: '13:30 - 17:00', status: 'COMPLETED' } },
+  { day: 'Thứ Bảy (Hôm nay)', date: '10/10/2026', morning: { room: 'P.102 - Phòng Khám Bệnh', time: '07:30 - 11:30', status: 'ACTIVE' }, afternoon: { room: 'Trực Khối Nội Viện', time: '13:30 - 17:00', status: 'UPCOMING' } },
   { day: 'Chủ Nhật', date: '11/10/2026', morning: { room: 'Nghỉ cuối tuần', time: '-', status: 'OFF' }, afternoon: { room: 'Nghỉ cuối tuần', time: '-', status: 'OFF' } }
 ]
 
 export default function DoctorSchedule() {
+  const { user } = useAuth()
   return (
     <DoctorLayout title="Lịch Trực & Ca Làm" subtitle="Lịch phân công trực phòng khám và ca lâm sàng theo tuần">
       
       <div className="card border-0 shadow-sm rounded-3 bg-white p-3 mb-3">
         <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
           <div>
-            <h6 className="fw-bold text-dark mb-0">Lịch tuần hiện tại: 05/10/2026 - 11/10/2026</h6>
-            <div className="text-muted small mt-1">Khoa Tim Mạch & Nội Khoa • BS. CKII. Trần Văn Hùng</div>
+            <h6 className="fw-bold text-dark mb-0">Lịch phân công ca làm việc phòng khám</h6>
+            <div className="text-muted small mt-1">
+              {user?.chuyenkhoa || 'Phòng Khám Đa Khoa'} • {user?.fullName ? (user.hocham ? `${user.hocham}. ${user.fullName}` : `BS. ${user.fullName}`) : 'Bác Sĩ'}
+            </div>
           </div>
           <div className="d-flex gap-2">
             <button className="btn btn-sm btn-outline-primary" onClick={() => alert('Yêu cầu đổi ca đã gửi tới Trưởng Khoa!')}>

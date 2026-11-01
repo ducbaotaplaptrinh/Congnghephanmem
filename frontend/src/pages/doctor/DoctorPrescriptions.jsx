@@ -1,64 +1,18 @@
 import { useState, useEffect } from 'react'
 import DoctorLayout from '../../components/layout/DoctorLayout'
 import prescriptionService from '../../services/prescriptionService'
+import { useAuth } from '../../hooks/useAuth'
 import './doctor.css'
 
-const INITIAL_PRESCRIPTIONS = [
-  {
-    id: 1,
-    code: 'DT001',
-    patientName: 'Nguyễn Văn An',
-    age: 65,
-    gender: 'Nam',
-    phone: '0901 234 567',
-    date: '2026-10-10',
-    diagnosis: 'Tăng huyết áp vô căn (I10)',
-    doctorName: 'BS. CKII. Nguyễn Hoàng Nam',
-    medicines: [
-      { name: 'Amlodipine 5mg', quantity: 14, unit: 'Viên', usage: 'Ngày 1 viên sáng sau ăn' },
-      { name: 'Atorvastatin 20mg', quantity: 14, unit: 'Viên', usage: 'Ngày 1 viên tối trước ngủ' }
-    ],
-    status: 'Đã cấp thuốc'
-  },
-  {
-    id: 2,
-    code: 'DT002',
-    patientName: 'Trần Thị Mai',
-    age: 32,
-    gender: 'Nữ',
-    phone: '0912 345 678',
-    date: '2026-10-09',
-    diagnosis: 'Viêm mũi họng cấp tính (J00)',
-    doctorName: 'BS. CKII. Nguyễn Hoàng Nam',
-    medicines: [
-      { name: 'Amoxicillin 500mg', quantity: 20, unit: 'Viên', usage: 'Ngày 2 lần x 1 viên sau ăn' },
-      { name: 'Paracetamol 500mg', quantity: 10, unit: 'Viên', usage: 'Uống 1 viên khi sốt trên 38.5 độ' }
-    ],
-    status: 'Đã cấp thuốc'
-  },
-  {
-    id: 3,
-    code: 'DT003',
-    patientName: 'Lê Hoàng Long',
-    age: 45,
-    gender: 'Nam',
-    phone: '0987 654 321',
-    date: '2026-10-08',
-    diagnosis: 'Thiểu năng tuần hoàn não (G44)',
-    doctorName: 'BS. CKII. Nguyễn Hoàng Nam',
-    medicines: [
-      { name: 'Ginkgo Biloba 80mg', quantity: 30, unit: 'Viên', usage: 'Ngày 2 lần mỗi lần 1 viên' }
-    ],
-    status: 'Chờ lấy thuốc'
-  }
-]
+const INITIAL_PRESCRIPTIONS = []
 
 export default function DoctorPrescriptions() {
-  const [prescriptions, setPrescriptions] = useState(INITIAL_PRESCRIPTIONS)
+  const { user } = useAuth()
+  const [prescriptions, setPrescriptions] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showPrintModal, setShowPrintModal] = useState(false)
-  const [activePrescription, setActivePrescription] = useState(INITIAL_PRESCRIPTIONS[0])
+  const [activePrescription, setActivePrescription] = useState(null)
 
   // Nạp danh sách đơn thuốc thực tế từ database
   useEffect(() => {
@@ -66,35 +20,36 @@ export default function DoctorPrescriptions() {
       setLoading(true)
       try {
         const dbList = await prescriptionService.getAll()
-        if (Array.isArray(dbList) && dbList.length > 0) {
-          const mapped = dbList.map(p => ({
-            id: p.id || p.madt,
-            code: p.code || `DT${String(p.madt || p.id).padStart(3, '0')}`,
-            patientName: p.patientName || p.lichsukham?.benhnhan?.hoten || 'Bệnh Nhân',
-            age: p.lichsukham?.benhnhan?.ngaysinh 
-              ? (new Date().getFullYear() - new Date(p.lichsukham.benhnhan.ngaysinh).getFullYear()) 
-              : 35,
-            gender: p.lichsukham?.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam',
-            phone: p.lichsukham?.benhnhan?.sdt || '0901 234 567',
-            date: p.date || p.ngayke ? String(p.ngayke).split('T')[0] : new Date().toISOString().split('T')[0],
-            diagnosis: p.diagnosis || p.lichsukham?.chandoan || 'Khám bệnh theo đơn',
-            doctorName: p.doctorName || 'BS. CKII. Nguyễn Hoàng Nam',
-            medicines: Array.isArray(p.medicines) && p.medicines.length > 0 ? p.medicines : [
-              { name: 'Tobradex Nhỏ Mắt', quantity: 2, unit: 'Lọ', usage: 'Nhỏ mắt 2 giọt/lần, ngày 3 lần' },
-              { name: 'Paracetamol 500mg', quantity: 10, unit: 'Viên', usage: 'Ngày 2 lần sau ăn khi đau' }
-            ],
-            status: 'Đã cấp thuốc'
-          }))
+        
+        // Lọc đơn thuốc do chính bác sĩ này kê
+        const doctorPrescriptions = (dbList || []).filter(p => {
+          if (user?.mabs && p.mabs) return Number(p.mabs) === Number(user.mabs)
+          if (user?.fullName && p.doctorName) return p.doctorName.toLowerCase().includes(user.fullName.toLowerCase())
+          return false
+        })
 
-          const combined = [...mapped]
-          INITIAL_PRESCRIPTIONS.forEach(initP => {
-            if (!combined.some(c => c.code === initP.code || c.patientName === initP.patientName)) {
-              combined.push(initP)
-            }
-          })
-          setPrescriptions(combined)
-          if (combined[0]) setActivePrescription(combined[0])
-        }
+        const mapped = doctorPrescriptions.map(p => ({
+          id: p.id || p.madt,
+          code: p.code || `DT${String(p.madt || p.id).padStart(3, '0')}`,
+          patientName: p.patientName || p.lichsukham?.benhnhan?.hoten || 'Bệnh Nhân',
+          age: p.lichsukham?.benhnhan?.ngaysinh 
+            ? (new Date().getFullYear() - new Date(p.lichsukham.benhnhan.ngaysinh).getFullYear()) 
+            : 35,
+          gender: p.lichsukham?.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam',
+          phone: p.lichsukham?.benhnhan?.sdt || '0901 234 567',
+          date: p.date || p.ngayke ? String(p.ngayke).split('T')[0] : new Date().toISOString().split('T')[0],
+          diagnosis: p.diagnosis || p.lichsukham?.chandoan || 'Khám bệnh theo đơn',
+          doctorName: p.doctorName || user?.fullName || 'Bác sĩ điều trị',
+          medicines: Array.isArray(p.medicines) && p.medicines.length > 0 ? p.medicines : [
+            { name: 'Tobradex Nhỏ Mắt', quantity: 2, unit: 'Lọ', usage: 'Nhỏ mắt 2 giọt/lần, ngày 3 lần' },
+            { name: 'Paracetamol 500mg', quantity: 10, unit: 'Viên', usage: 'Ngày 2 lần sau ăn khi đau' }
+          ],
+          status: 'Đã cấp thuốc'
+        }))
+
+        setPrescriptions(mapped)
+        if (mapped[0]) setActivePrescription(mapped[0])
+        else setActivePrescription(null)
       } catch (err) {
         console.warn('Lỗi tải danh sách đơn thuốc:', err.message)
       } finally {
@@ -103,7 +58,7 @@ export default function DoctorPrescriptions() {
     }
 
     fetchPrescriptions()
-  }, [])
+  }, [user])
 
   const filtered = prescriptions.filter(p =>
     p.patientName.toLowerCase().includes(search.toLowerCase()) ||
@@ -268,8 +223,8 @@ export default function DoctorPrescriptions() {
                 <div className="d-flex align-items-center gap-2">
                   <i className="bi bi-capsule fs-4"></i>
                   <div>
-                    <h5 className="modal-title fw-bold mb-0">Đơn Thuốc Điện Tử #{activePrescription.code}</h5>
-                    <div className="small opacity-75">Ngày kê: {activePrescription.date} • Bác sĩ điều trị: {activePrescription.doctorName || 'BS. CKII. Nguyễn Hoàng Nam'}</div>
+                    <h5 className="modal-title fw-bold mb-0">Đơn Thuốc Điện Tử #{activePrescription?.code || ''}</h5>
+                    <div className="small opacity-75">Ngày kê: {activePrescription?.date || ''} • Bác sĩ điều trị: {activePrescription?.doctorName || user?.fullName || 'Bác sĩ điều trị'}</div>
                   </div>
                 </div>
                 <button 
@@ -368,7 +323,7 @@ export default function DoctorPrescriptions() {
                     <div style={{ textAlign: 'center', minWidth: '220px' }}>
                       <div style={{ fontSize: '10pt', fontStyle: 'italic', color: '#64748b' }}>Ngày {new Date().getDate()} tháng {new Date().getMonth() + 1} năm {new Date().getFullYear()}</div>
                       <div style={{ fontWeight: 'bold', margin: '4px 0 28px 0', color: '#0f172a' }}>Bác sĩ điều trị</div>
-                      <div style={{ fontWeight: 'bold', fontSize: '11.5pt', color: '#175cdd' }}>{activePrescription.doctorName || 'BS. CKII. Nguyễn Hoàng Nam'}</div>
+                      <div style={{ fontWeight: 'bold', fontSize: '11.5pt', color: '#175cdd' }}>{activePrescription?.doctorName || user?.fullName || 'Bác sĩ điều trị'}</div>
                     </div>
                   </div>
                 </div>

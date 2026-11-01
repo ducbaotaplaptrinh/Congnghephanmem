@@ -17,11 +17,16 @@ export default function DoctorAppointments() {
     setLoading(true)
     try {
       const data = await appointmentService.getAll()
-      // Nếu là Bác sĩ đăng nhập, ưu tiên lọc lịch hẹn của bác sĩ
-      const doctorApts = (user?.role === 'DOCTOR' && user?.fullName)
-        ? data.filter(a => a.doctorName?.toLowerCase().includes(user.fullName.toLowerCase()) || !a.doctorName)
-        : data
-      setAppointments(doctorApts.length > 0 ? doctorApts : data)
+      // Nếu là Bác sĩ đăng nhập, chỉ hiển thị lịch hẹn của chính bác sĩ đó
+      let doctorApts = data || []
+      if (user?.role === 'DOCTOR') {
+        doctorApts = (data || []).filter(a => {
+          if (user?.mabs && a.mabs) return Number(a.mabs) === Number(user.mabs)
+          if (user?.fullName && a.doctorName) return a.doctorName.toLowerCase().includes(user.fullName.toLowerCase())
+          return false
+        })
+      }
+      setAppointments(doctorApts)
     } catch (err) {
       console.warn('Lỗi tải lịch khám:', err)
     } finally {

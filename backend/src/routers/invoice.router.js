@@ -48,7 +48,7 @@ router.get(
 router.get(
     "/",
     authMiddleware,
-    roleMiddleware("Admin", "LeTan"),
+    roleMiddleware("Admin", "LeTan", "BacSi"),
     validateInvoiceQuery,
     getAllInvoicesController,
 );

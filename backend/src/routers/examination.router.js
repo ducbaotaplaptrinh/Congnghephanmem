@@ -34,11 +34,11 @@ router.post(
     createExaminationController,
 );
 
-// Lấy danh sách phiếu khám bệnh (Bác sĩ, Admin, Lễ tân)
+// Lấy danh sách phiếu khám bệnh (Bác sĩ, Admin, Lễ tân, Bệnh nhân)
 router.get(
     "/",
     authMiddleware,
-    roleMiddleware("BacSi", "Admin", "LeTan"),
+    roleMiddleware("BacSi", "Admin", "LeTan", "BenhNhan"),
     validateExaminationQuery,
     getAllExaminationsController,
 );

@@ -52,7 +52,7 @@ router.get(
 router.get(
     "/users",
     authMiddleware,
-    roleMiddleware("Admin"),
+    roleMiddleware("Admin", "BacSi", "LeTan"),
     authController.getAllUsersController,
 );
 

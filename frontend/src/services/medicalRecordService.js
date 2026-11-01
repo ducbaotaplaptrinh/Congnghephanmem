@@ -1,24 +1,27 @@
 import api from './api'
 
-const initialRecords = [
-  { id: 1, malsk: 1, code: 'BA001', patientName: 'Nguyễn Văn An', doctorName: 'BS. CKII. Nguyễn Hoàng Nam', date: '2026-10-01', diagnosis: 'Tăng huyết áp vô căn độ 1', chandoan: 'Tăng huyết áp vô căn độ 1', symptoms: 'Đau đầu, chóng mặt khi làm việc căng thẳng', trieuchung: 'Đau đầu, chóng mặt khi làm việc căng thẳng', treatment: 'Dùng thuốc hạ áp, giảm muối, tập thể dục nhẹ', ketluan: 'Dùng thuốc hạ áp, giảm muối, tập thể dục nhẹ' },
-  { id: 2, malsk: 2, code: 'BA002', patientName: 'Trần Thị Mai', doctorName: 'BS. CKII. Nguyễn Hoàng Nam', date: '2026-10-03', diagnosis: 'Viêm mũi họng cấp', chandoan: 'Viêm mũi họng cấp', symptoms: 'Sốt nhẹ 38 độ, ho đờm, rát cổ', trieuchung: 'Sốt nhẹ 38 độ, ho đờm, rát cổ', treatment: 'Kháng sinh nhẹ, hạ sốt, bù nước điện giải', ketluan: 'Kháng sinh nhẹ, hạ sốt, bù nước điện giải' },
-  { id: 3, malsk: 3, code: 'BA003', patientName: 'Lê Hoàng Long', doctorName: 'BS. CKII. Nguyễn Hoàng Nam', date: '2026-10-04', diagnosis: 'Rối loạn tuần hoàn não', chandoan: 'Rối loạn tuần hoàn não', symptoms: 'Mất ngủ, hoa mắt khi thay đổi tư thế', trieuchung: 'Mất ngủ, hoa mắt khi thay đổi tư thế', treatment: 'Tăng cường tuần hoàn não, nghỉ ngơi hợp lý', ketluan: 'Tăng cường tuần hoàn não, nghỉ ngơi hợp lý' }
-]
-
 function normalizeRecord(r) {
   if (!r) return null
-  const dateStr = r.ngay ? (typeof r.ngay === 'string' ? r.ngay.split('T')[0] : new Date(r.ngay).toISOString().split('T')[0]) : (r.date || '2026-10-01')
+  const dateStr = r.ngay 
+    ? (typeof r.ngay === 'string' ? r.ngay.split('T')[0] : new Date(r.ngay).toISOString().split('T')[0]) 
+    : (r.date || new Date().toISOString().split('T')[0])
   
   // Lấy tên bác sĩ từ DB (bacsi.hoten hoặc bacsi.nhanvien.hoten)
-  let docName = 'BS. CKII. Nguyễn Hoàng Nam'
-  if (r.bacsi?.hoten) {
-    docName = r.bacsi.hocham ? `${r.bacsi.hocham}. ${r.bacsi.hoten}` : `BS. ${r.bacsi.hoten}`
-  } else if (r.bacsi?.nhanvien?.hoten) {
+  let docName = 'Bác sĩ phụ trách'
+  if (r.bacsi?.nhanvien?.hoten) {
     docName = r.bacsi.hocham ? `${r.bacsi.hocham}. ${r.bacsi.nhanvien.hoten}` : `BS. ${r.bacsi.nhanvien.hoten}`
-  } else if (r.doctorName && !r.doctorName.includes('Trần Văn Hùng')) {
+  } else if (r.bacsi?.hoten) {
+    docName = r.bacsi.hocham ? `${r.bacsi.hocham}. ${r.bacsi.hoten}` : `BS. ${r.bacsi.hoten}`
+  } else if (r.doctorName) {
     docName = r.doctorName
   }
+
+  const patientName = r.benhnhan?.hoten || r.patientName || 'Bệnh Nhân'
+  const patientPhone = r.benhnhan?.sdt || r.phone || ''
+  const patientGender = r.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : (r.benhnhan?.gioitinh || 'Nam')
+  const patientDob = r.benhnhan?.ngaysinh ? String(r.benhnhan.ngaysinh).split('T')[0] : ''
+  const patientAddress = r.benhnhan?.diachi || ''
+  const departmentName = r.bacsi?.chuyenkhoa?.tenchuyenkhoa || 'Khoa Khám Bệnh'
 
   return {
     id: r.malsk || r.id,
@@ -26,19 +29,25 @@ function normalizeRecord(r) {
     code: r.code || `BA${String(r.malsk || r.id).padStart(3, '0')}`,
     mabn: r.mabn,
     mabs: r.mabs,
-    patientName: r.benhnhan?.hoten || r.patientName || 'Bệnh Nhân',
+    patientName,
+    phone: patientPhone,
+    gender: patientGender,
+    birthday: patientDob,
+    address: patientAddress,
     doctorName: docName,
+    department: departmentName,
     date: dateStr,
     ngay: dateStr,
-    diagnosis: r.chandoan || r.diagnosis || 'Khám tổng quát',
-    chandoan: r.chandoan || r.diagnosis || 'Khám tổng quát',
+    diagnosis: r.chandoan || r.diagnosis || 'Khám bệnh định kỳ',
+    chandoan: r.chandoan || r.diagnosis || 'Khám bệnh định kỳ',
     symptoms: r.trieuchung || r.symptoms || '',
     trieuchung: r.trieuchung || r.symptoms || '',
     treatment: r.ketluan || r.treatment || '',
     ketluan: r.ketluan || r.treatment || '',
     services: r.chitietdichvukham || [],
     prescription: r.donthuoc || null,
-    invoice: r.hoadon || null
+    invoice: r.hoadon || null,
+    status: 'Đã hoàn thành'
   }
 }
 
@@ -46,14 +55,15 @@ export const medicalRecordService = {
   async getAll(params = {}) {
     try {
       const res = await api.get('/examinations', params)
-      const list = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : [])
-      if (Array.isArray(list) && list.length > 0) {
-        return list.map(normalizeRecord)
-      }
+      const list = Array.isArray(res) 
+        ? res 
+        : (Array.isArray(res?.data) 
+            ? res.data 
+            : (Array.isArray(res?.examinations) ? res.examinations : []))
       return list.map(normalizeRecord)
     } catch (err) {
-      console.warn('[medicalRecordService] Gọi /examinations lỗi, dùng fallback:', err.message)
-      return initialRecords.map(normalizeRecord)
+      console.error('[medicalRecordService.getAll] Lỗi nạp phiếu khám từ backend:', err.message)
+      return []
     }
   },
 
@@ -61,63 +71,51 @@ export const medicalRecordService = {
     try {
       const res = await api.get(`/examinations/${id}`)
       return normalizeRecord(res.data || res)
-    } catch {
-      return initialRecords.find(r => r.id === Number(id) || r.malsk === Number(id)) || null
+    } catch (err) {
+      console.error(`[medicalRecordService.getById] Lỗi nạp bệnh án #${id}:`, err.message)
+      return null
     }
   },
 
   async getByPatientId(patientId) {
     try {
-      const res = await api.get(`/examinations/patient/${patientId}`)
-      const list = Array.isArray(res) ? res : (res.data || [])
+      // Backend hỗ trợ lọc qua query ?mabn=...
+      const res = await api.get('/examinations', { mabn: Number(patientId) })
+      const list = Array.isArray(res) 
+        ? res 
+        : (Array.isArray(res?.data) ? res.data : [])
       return list.map(normalizeRecord)
-    } catch {
-      return initialRecords.filter(r => r.mabn === Number(patientId))
+    } catch (err) {
+      console.error(`[medicalRecordService.getByPatientId] Lỗi nạp bệnh án của bệnh nhân #${patientId}:`, err.message)
+      return []
     }
   },
 
   async create(data) {
-    try {
-      const payload = {
-        mabn: Number(data.mabn || data.patientId),
-        malh: data.malh ? Number(data.malh) : undefined,
-        trieuchung: data.symptoms || data.trieuchung || 'Không có triệu chứng bất thường',
-        chandoan: data.diagnosis || data.chandoan || 'Khám bệnh định kỳ',
-        ketluan: data.treatment || data.ketluan || 'Theo dõi thêm',
-        services: data.services || []
-      }
-      const res = await api.post('/examinations', payload)
-      return normalizeRecord(res.data || res)
-    } catch {
-      const newRec = normalizeRecord({
-        id: Date.now(),
-        code: `BA${Math.floor(100 + Math.random() * 900)}`,
-        ...data
-      })
-      return newRec
+    const payload = {
+      mabn: Number(data.mabn || data.patientId),
+      malh: data.malh ? Number(data.malh) : undefined,
+      trieuchung: data.symptoms || data.trieuchung || 'Không có triệu chứng bất thường',
+      chandoan: data.diagnosis || data.chandoan || 'Khám bệnh định kỳ',
+      ketluan: data.treatment || data.ketluan || 'Theo dõi thêm',
+      services: data.services || []
     }
+    const res = await api.post('/examinations', payload)
+    return normalizeRecord(res.data || res)
   },
 
   async update(id, data) {
-    try {
-      const payload = {
-        chandoan: data.diagnosis || data.chandoan,
-        ketluan: data.treatment || data.ketluan,
-        trieuchung: data.symptoms || data.trieuchung
-      }
-      const res = await api.put(`/examinations/${id}`, payload)
-      return normalizeRecord(res.data || res)
-    } catch {
-      return normalizeRecord({ id: Number(id), ...data })
+    const payload = {
+      chandoan: data.diagnosis || data.chandoan,
+      ketluan: data.treatment || data.ketluan,
+      trieuchung: data.symptoms || data.trieuchung
     }
+    const res = await api.put(`/examinations/${id}`, payload)
+    return normalizeRecord(res.data || res)
   },
 
   async delete(id) {
-    try {
-      return await api.delete(`/examinations/${id}`)
-    } catch {
-      return { success: true }
-    }
+    return await api.delete(`/examinations/${id}`)
   }
 }
 

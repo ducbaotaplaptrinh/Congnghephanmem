@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import AdminLayout from '../../components/layout/AdminLayout'
 import userService from '../../services/userService'
+import { doctorService } from '../../services/doctorService'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 
 export default function UserList() {
   const [users, setUsers] = useState([])
+  const [specialties, setSpecialties] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('ALL')
@@ -16,15 +18,25 @@ export default function UserList() {
     hoten: '',
     vaitro: 'LeTan',
     sdt: '',
-    gioitinh: 'Nam'
+    gioitinh: 'Nam',
+    mack: 1,
+    hocham: 'Bác sĩ CKI',
+    sogiayphephanhnghe: ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const loadUsers = async () => {
     try {
       setLoading(true)
-      const data = await userService.getAll()
+      const [data, specs] = await Promise.all([
+        userService.getAll(),
+        doctorService.getSpecialties().catch(() => [])
+      ])
       setUsers(data)
+      if (specs && specs.length > 0) {
+        setSpecialties(specs)
+        setFormData(prev => ({ ...prev, mack: specs[0].mack }))
+      }
     } finally {
       setLoading(false)
     }
@@ -87,9 +99,10 @@ export default function UserList() {
       (u.name || '').toLowerCase().includes(search.toLowerCase()) ||
       (u.username || '').toLowerCase().includes(search.toLowerCase()) ||
       (u.email || '').toLowerCase().includes(search.toLowerCase()) ||
+      (u.chuyenkhoa || '').toLowerCase().includes(search.toLowerCase()) ||
       (u.phone || '').includes(search)
 
-    const matchesRole = roleFilter === 'ALL' || u.role === roleFilter
+    const matchesRole = roleFilter === 'ALL' || String(u.role || '').toLowerCase() === String(roleFilter).toLowerCase()
     return matchesSearch && matchesRole
   })
 
@@ -206,19 +219,33 @@ export default function UserList() {
                       <td className="text-muted text-center fw-medium">{idx + 1}</td>
                       <td>
                         <div className="d-flex align-items-center gap-2.5">
-                          <div 
-                            className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm flex-shrink-0"
-                            style={{ 
-                              width: '36px', 
-                              height: '36px', 
-                              backgroundColor: u.role === 'Admin' ? '#ef4444' : u.role === 'BacSi' ? '#3b82f6' : u.role === 'LeTan' ? '#10b981' : '#64748b',
-                              fontSize: '13px'
-                            }}
-                          >
-                            {(u.name || u.username).charAt(0).toUpperCase()}
-                          </div>
+                          {u.hinhanh ? (
+                            <img 
+                              src={u.hinhanh} 
+                              alt={u.name} 
+                              className="rounded-circle object-fit-cover border shadow-xs flex-shrink-0" 
+                              style={{ width: '36px', height: '36px' }}
+                            />
+                          ) : (
+                            <div 
+                              className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm flex-shrink-0"
+                              style={{ 
+                                width: '36px', 
+                                height: '36px', 
+                                backgroundColor: u.role === 'Admin' ? '#ef4444' : u.role === 'BacSi' ? '#3b82f6' : u.role === 'LeTan' ? '#10b981' : '#64748b',
+                                fontSize: '13px'
+                              }}
+                            >
+                              {(u.name || u.username).charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <div>
                             <div className="fw-bold text-dark text-nowrap">{u.name}</div>
+                            {u.chuyenkhoa && (
+                              <div className="text-primary small text-nowrap fw-medium" style={{ fontSize: '11.5px' }}>
+                                <i className="bi bi-hospital me-1"></i>{u.chuyenkhoa}
+                              </div>
+                            )}
                             {u.phone && <div className="text-muted small text-nowrap"><i className="bi bi-telephone me-1"></i>{u.phone}</div>}
                           </div>
                         </div>
@@ -415,7 +442,7 @@ export default function UserList() {
                   </div>
 
                   {/* Số điện thoại */}
-                  <div className="mb-2">
+                  <div className="mb-3">
                     <label className="form-label small fw-semibold text-secondary mb-1">
                       Số Điện Thoại Liên Hệ
                     </label>
@@ -431,10 +458,75 @@ export default function UserList() {
                         onChange={(e) => setFormData({ ...formData, sdt: e.target.value })}
                       />
                     </div>
-                    <div className="form-text text-muted small mt-2">
-                      <i className="bi bi-info-circle me-1"></i>
-                      Tài khoản sẽ được tự động đồng bộ vào CSDL Supabase PostgreSQL với mật khẩu bảo mật Bcrypt.
+                  </div>
+
+                  {/* THÔNG TIN BÁC SĨ (KHI CHỌN VAI TRÒ BÁC SĨ) */}
+                  {formData.vaitro === 'BacSi' && (
+                    <div className="p-3 rounded-3 mb-3 border shadow-xs" style={{ backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }}>
+                      <div className="d-flex align-items-center gap-2 mb-2 text-success fw-bold small">
+                        <i className="bi bi-hospital fs-6"></i>
+                        <span>Thiết Lập Hồ Sơ Lâm Sàng Cho Bác Sĩ</span>
+                      </div>
+                      <div className="row g-2">
+                        <div className="col-md-7">
+                          <label className="form-label small fw-semibold text-secondary mb-1">
+                            Chuyên Khoa Phụ Trách <span className="text-danger">*</span>
+                          </label>
+                          <select 
+                            className="form-select form-select-sm"
+                            value={formData.mack || 1}
+                            onChange={(e) => setFormData({ ...formData, mack: Number(e.target.value) })}
+                          >
+                            {specialties.map(s => (
+                              <option key={s.mack} value={s.mack}>{s.tenchuyenkhoa}</option>
+                            ))}
+                            {specialties.length === 0 && (
+                              <option value="1">Khoa Mắt Kỹ Thuật Cao</option>
+                            )}
+                          </select>
+                        </div>
+                        <div className="col-md-5">
+                          <label className="form-label small fw-semibold text-secondary mb-1">
+                            Học Hàm / Chức Danh
+                          </label>
+                          <select 
+                            className="form-select form-select-sm"
+                            value={formData.hocham || 'Bác sĩ CKI'}
+                            onChange={(e) => setFormData({ ...formData, hocham: e.target.value })}
+                          >
+                            <option value="Bác sĩ CKI">Bác sĩ CKI</option>
+                            <option value="Bác sĩ CKII">Bác sĩ CKII</option>
+                            <option value="Thạc sĩ, Bác sĩ CKI">Thạc sĩ, Bác sĩ CKI</option>
+                            <option value="Tiến sĩ Bác sĩ">Tiến sĩ Bác sĩ</option>
+                            <option value="Bác sĩ chuyên khoa">Bác sĩ chuyên khoa</option>
+                          </select>
+                        </div>
+                        <div className="col-12 mt-1">
+                          <div className="d-flex align-items-center justify-content-between mb-1">
+                            <label className="form-label small fw-semibold text-secondary mb-0">
+                              Số Chứng Chỉ Hành Nghề (CCHN)
+                            </label>
+                            <span className="text-muted" style={{ fontSize: '11px' }}>Tự động cấp nếu để trống</span>
+                          </div>
+                          <input 
+                            type="text" 
+                            className="form-control form-control-sm font-monospace"
+                            placeholder="Ví dụ: CCHN-123456"
+                            value={formData.sogiayphephanhnghe || ''}
+                            onChange={(e) => setFormData({ ...formData, sogiayphephanhnghe: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className="small text-muted mt-2" style={{ fontSize: '11.5px' }}>
+                        <i className="bi bi-check-circle-fill text-success me-1"></i>
+                        Bác sĩ sẽ tự động xuất hiện đồng thời tại mục <strong>Bác Sĩ (/doctors-manage)</strong> và kích hoạt phân quyền khám bệnh.
+                      </div>
                     </div>
+                  )}
+
+                  <div className="form-text text-muted small mt-2">
+                    <i className="bi bi-info-circle me-1"></i>
+                    Tài khoản sẽ được tự động đồng bộ vào CSDL Supabase PostgreSQL với mật khẩu bảo mật Bcrypt.
                   </div>
                 </div>
 

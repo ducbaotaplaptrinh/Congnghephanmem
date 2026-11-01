@@ -6,123 +6,9 @@ import invoiceService from '../../services/invoiceService'
 import '../../components/layout/admin.css'
 import './accountant.css'
 
-// Dữ liệu mẫu hàng chờ thu ngân
-const INITIAL_QUEUE = [
-  {
-    id: 101,
-    invoiceCode: 'HD-20261015-01',
-    patientCode: 'BN001',
-    patientName: 'Nguyễn Văn An',
-    gender: 'Nam',
-    age: 65,
-    phone: '0901 234 567',
-    doctorName: 'BS. CKII Lê Văn Tâm',
-    department: 'Khoa Tim Mạch',
-    insuranceNumber: 'BHYT-DN4791234567890',
-    insuranceRate: 0.8, // BHYT thanh toán 80%
-    createdAt: '08:15 15/10/2026',
-    items: [
-      { id: 1, name: 'Khám tim mạch chuyên sâu', type: 'KHÁM', qty: 1, price: 200000, bhytCovered: true },
-      { id: 2, name: 'Đo điện tâm đồ ECG', type: 'CLS', qty: 1, price: 150000, bhytCovered: true },
-      { id: 3, name: 'Thuốc Amlodipine 5mg (Hộp 30 viên)', type: 'THUỐC', qty: 1, price: 120000, bhytCovered: false },
-      { id: 4, name: 'Thuốc Rosuvastatin 10mg (Hộp 30 viên)', type: 'THUỐC', qty: 1, price: 180000, bhytCovered: false }
-    ]
-  },
-  {
-    id: 102,
-    invoiceCode: 'HD-20261015-02',
-    patientCode: 'BN002',
-    patientName: 'Trần Thị Mai',
-    gender: 'Nữ',
-    age: 32,
-    phone: '0912 345 678',
-    doctorName: 'BS. CKI Trần Thị Hằng',
-    department: 'Khoa Nhi & Tai Mũi Họng',
-    insuranceNumber: 'BHYT-GD4799876543210',
-    insuranceRate: 0.8,
-    createdAt: '08:40 15/10/2026',
-    items: [
-      { id: 1, name: 'Khám chuyên khoa Nhi', type: 'KHÁM', qty: 1, price: 150000, bhytCovered: true },
-      { id: 2, name: 'Nội soi tai mũi họng', type: 'CLS', qty: 1, price: 180000, bhytCovered: true },
-      { id: 3, name: 'Siro ho thảo dược + Kháng viêm', type: 'THUỐC', qty: 2, price: 95000, bhytCovered: false }
-    ]
-  },
-  {
-    id: 103,
-    invoiceCode: 'HD-20261015-03',
-    patientCode: 'BN003',
-    patientName: 'Lê Hoàng Long',
-    gender: 'Nam',
-    age: 45,
-    phone: '0987 654 321',
-    doctorName: 'ThS. BS Hoàng Đức Anh',
-    department: 'Khoa Thần Kinh',
-    insuranceNumber: '',
-    insuranceRate: 0,
-    createdAt: '09:05 15/10/2026',
-    items: [
-      { id: 1, name: 'Khám thần kinh chuyên sâu', type: 'KHÁM', qty: 1, price: 250000, bhytCovered: false },
-      { id: 2, name: 'Siêu âm Doppler mạch máu não', type: 'CLS', qty: 1, price: 350000, bhytCovered: false },
-      { id: 3, name: 'Thuốc bổ não Piracetam 800mg', type: 'THUỐC', qty: 1, price: 160000, bhytCovered: false }
-    ]
-  }
-]
-
-// Dữ liệu mẫu hóa đơn đã lập
-const INITIAL_INVOICES = [
-  {
-    id: 'HD-20261015-001',
-    code: 'HD001',
-    patientCode: 'BN008',
-    patientName: 'Phạm Thị Hương',
-    createdAt: '07:30 15/10/2026',
-    totalAmount: 480000,
-    insuranceDiscount: 160000,
-    patientPay: 320000,
-    paymentMethod: 'Tiền mặt',
-    status: 'PAID',
-    cashier: 'Nguyễn Thị Mai (Quầy 1)',
-    items: [
-      { name: 'Khám tổng quát', qty: 1, price: 180000 },
-      { name: 'Xét nghiệm máu tổng quát', qty: 1, price: 300000 }
-    ]
-  },
-  {
-    id: 'HD-20261015-002',
-    code: 'HD002',
-    patientCode: 'BN012',
-    patientName: 'Vũ Đức Thịnh',
-    createdAt: '07:55 15/10/2026',
-    totalAmount: 850000,
-    insuranceDiscount: 0,
-    patientPay: 850000,
-    paymentMethod: 'Chuyển khoản (VietQR)',
-    status: 'PAID',
-    cashier: 'Nguyễn Thị Mai (Quầy 1)',
-    items: [
-      { name: 'Khám Cơ Xương Khớp', qty: 1, price: 200000 },
-      { name: 'Chụp X-quang cột sống thắt lưng', qty: 1, price: 250000 },
-      { name: 'Thuốc giãn cơ & giảm đau', qty: 1, price: 400000 }
-    ]
-  },
-  {
-    id: 'HD-20261015-003',
-    code: 'HD003',
-    patientCode: 'BN015',
-    patientName: 'Đặng Minh Châu',
-    createdAt: '08:10 15/10/2026',
-    totalAmount: 250000,
-    insuranceDiscount: 50000,
-    patientPay: 200000,
-    paymentMethod: 'Chưa thanh toán',
-    status: 'UNPAID',
-    cashier: 'Nguyễn Thị Mai (Quầy 1)',
-    items: [
-      { name: 'Khám Mắt & Đo thị lực', qty: 1, price: 150000 },
-      { name: 'Thuốc nhỏ mắt kháng sinh', qty: 1, price: 100000 }
-    ]
-  }
-]
+// Dữ liệu hàng chờ thu ngân và hóa đơn được đồng bộ từ Backend API
+const INITIAL_QUEUE = []
+const INITIAL_INVOICES = []
 
 // Dữ liệu mẫu Sổ quỹ Thu - Chi
 const INITIAL_CASHBOOK = [
@@ -172,8 +58,8 @@ export default function AccountantPortal() {
   const [shiftModalOpen, setShiftModalOpen] = useState(false)
 
   // State Hàng chờ thu ngân
-  const [queue, setQueue] = useState(INITIAL_QUEUE)
-  const [selectedQueuePatient, setSelectedQueuePatient] = useState(INITIAL_QUEUE[0])
+  const [queue, setQueue] = useState([])
+  const [selectedQueuePatient, setSelectedQueuePatient] = useState(null)
   const [searchQueueText, setSearchQueueText] = useState('')
 
   // State Thanh toán
@@ -183,7 +69,7 @@ export default function AccountantPortal() {
   const [qrModalOpen, setQrModalOpen] = useState(false)
 
   // State Hóa đơn
-  const [invoices, setInvoices] = useState(INITIAL_INVOICES)
+  const [invoices, setInvoices] = useState([])
   const [invoiceFilterStatus, setInvoiceFilterStatus] = useState('ALL')
   const [invoiceSearchText, setInvoiceSearchText] = useState('')
   const [printInvoiceData, setPrintInvoiceData] = useState(null)
@@ -233,82 +119,80 @@ export default function AccountantPortal() {
     try {
       setIsLoading(true)
       const allInvoices = await invoiceService.getAll()
-      if (Array.isArray(allInvoices) && allInvoices.length > 0) {
-        // 1. Sổ Hóa Đơn & Biên Lai
-        const mappedInvoices = allInvoices.map(inv => ({
-          id: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
+      const list = Array.isArray(allInvoices) ? allInvoices : []
+      
+      // 1. Sổ Hóa Đơn & Biên Lai
+      const mappedInvoices = list.map(inv => ({
+        id: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
+        mahd: inv.mahd,
+        code: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
+        patientCode: `BN${String(inv.mabn || 1).padStart(3, '0')}`,
+        patientName: inv.patientName || 'Bệnh Nhân',
+        createdAt: inv.date || formatDateTime(new Date()),
+        totalAmount: inv.totalAmount || 0,
+        insuranceDiscount: inv.insuranceDiscount || ((inv.insuranceNumber || inv.benhnhan?.sobhyt) ? Math.round((inv.totalAmount || 0) * 0.2) : 0),
+        patientPay: inv.totalAmount || 0,
+        paymentMethod: inv.paymentMethod || 'Chưa thanh toán',
+        status: inv.trangthaithanhtoan === 'DaThanhToan' ? 'PAID' : 'UNPAID',
+        cashier: 'Kế Toán Viên (Thu Ngân)',
+        items: (inv.items || []).map((it, idx) => ({
+          id: it.id || idx + 1,
+          name: it.name || it.tendichvu || 'Dịch vụ / Thuốc',
+          qty: it.quantity || it.soluong || 1,
+          price: it.price || it.dongia || 0
+        }))
+      }))
+      setInvoices(mappedInvoices)
+
+      // 2. Hàng Chờ Thu Ngân (Các hóa đơn chưa thanh toán)
+      const unpaidList = list.filter(inv => inv.trangthaithanhtoan !== 'DaThanhToan')
+      if (unpaidList.length > 0) {
+        const mappedQueue = unpaidList.map(inv => ({
+          id: inv.mahd,
           mahd: inv.mahd,
-          code: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
+          invoiceCode: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
           patientCode: `BN${String(inv.mabn || 1).padStart(3, '0')}`,
           patientName: inv.patientName || 'Bệnh Nhân',
+          gender: inv.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam',
+          age: 45,
+          phone: inv.phone || '0901 234 567',
+          doctorName: inv.doctorName || 'BS. CKII Nguyễn Hoàng Nam',
+          department: 'Khoa Khám Bệnh Ngoại Trú',
+          insuranceNumber: inv.insuranceNumber || inv.benhnhan?.sobhyt || '',
+          insuranceRate: (inv.insuranceNumber || inv.benhnhan?.sobhyt) ? 0.8 : 0,
           createdAt: inv.date || formatDateTime(new Date()),
-          totalAmount: inv.totalAmount || 0,
-          insuranceDiscount: inv.insuranceDiscount || ((inv.insuranceNumber || inv.benhnhan?.sobhyt) ? Math.round((inv.totalAmount || 0) * 0.2) : 0),
-          patientPay: inv.totalAmount || 0,
-          paymentMethod: inv.paymentMethod || 'Chưa thanh toán',
-          status: inv.trangthaithanhtoan === 'DaThanhToan' ? 'PAID' : 'UNPAID',
-          cashier: 'Kế Toán Viên (Thu Ngân)',
-          items: (inv.items || []).map((it, idx) => ({
+          items: (inv.items && inv.items.length > 0) ? inv.items.map((it, idx) => ({
             id: it.id || idx + 1,
             name: it.name || it.tendichvu || 'Dịch vụ / Thuốc',
+            type: it.type || (it.name?.toLowerCase().includes('thuốc') ? 'THUỐC' : 'CLS'),
             qty: it.quantity || it.soluong || 1,
-            price: it.price || it.dongia || 0
-          }))
+            price: it.price || it.dongia || 0,
+            bhytCovered: !!(inv.insuranceNumber || inv.benhnhan?.sobhyt)
+          })) : [
+            { id: 1, name: 'Khám bệnh & Dịch vụ y tế', type: 'KHÁM', qty: 1, price: inv.totalAmount || 250000, bhytCovered: true }
+          ]
         }))
-        setInvoices(mappedInvoices)
-
-        // 2. Hàng Chờ Thu Ngân (Các hóa đơn chưa thanh toán)
-        const unpaidList = allInvoices.filter(inv => inv.trangthaithanhtoan !== 'DaThanhToan')
-        if (unpaidList.length > 0) {
-          const mappedQueue = unpaidList.map(inv => ({
-            id: inv.mahd,
-            mahd: inv.mahd,
-            invoiceCode: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
-            patientCode: `BN${String(inv.mabn || 1).padStart(3, '0')}`,
-            patientName: inv.patientName || 'Bệnh Nhân',
-            gender: inv.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam',
-            age: 45,
-            phone: inv.phone || '0901 234 567',
-            doctorName: inv.doctorName || 'BS. CKII Nguyễn Hoàng Nam',
-            department: 'Khoa Khám Bệnh Ngoại Trú',
-            insuranceNumber: inv.insuranceNumber || inv.benhnhan?.sobhyt || '',
-            insuranceRate: (inv.insuranceNumber || inv.benhnhan?.sobhyt) ? 0.8 : 0,
-            createdAt: inv.date || formatDateTime(new Date()),
-            items: (inv.items && inv.items.length > 0) ? inv.items.map((it, idx) => ({
-              id: it.id || idx + 1,
-              name: it.name || it.tendichvu || 'Dịch vụ / Thuốc',
-              type: it.type || (it.name?.toLowerCase().includes('thuốc') ? 'THUỐC' : 'CLS'),
-              qty: it.quantity || it.soluong || 1,
-              price: it.price || it.dongia || 0,
-              bhytCovered: !!(inv.insuranceNumber || inv.benhnhan?.sobhyt)
-            })) : [
-              { id: 1, name: 'Khám bệnh & Dịch vụ y tế', type: 'KHÁM', qty: 1, price: inv.totalAmount || 250000, bhytCovered: true }
-            ]
-          }))
-          setQueue(mappedQueue)
-          setSelectedQueuePatient(mappedQueue[0])
-        } else {
-          setQueue([])
-          setSelectedQueuePatient(null)
-        }
-
-        // 3. Sổ Quỹ Thu - Chi (Tổng hợp từ hóa đơn đã thanh toán)
-        const paidList = allInvoices.filter(inv => inv.trangthaithanhtoan === 'DaThanhToan')
-        if (paidList.length > 0) {
-          const mappedCashbook = paidList.map(inv => ({
-            id: `PT-${String(inv.mahd).padStart(3, '0')}`,
-            type: 'THU',
-            category: 'Thu viện phí',
-            refCode: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
-            amount: inv.totalAmount || 0,
-            method: inv.paymentMethod || 'Chuyển khoản (VietQR)',
-            payer: inv.patientName || 'Bệnh Nhân',
-            note: `Thu viện phí BN ${inv.patientName || 'Bệnh Nhân'} (${inv.code || 'HD00' + inv.mahd})`,
-            createdAt: inv.date || formatDateTime(new Date())
-          }))
-          setCashbook([...mappedCashbook, ...INITIAL_CASHBOOK.filter(c => c.type === 'CHI')])
-        }
+        setQueue(mappedQueue)
+        setSelectedQueuePatient(mappedQueue[0])
+      } else {
+        setQueue([])
+        setSelectedQueuePatient(null)
       }
+
+      // 3. Sổ Quỹ Thu - Chi (Tổng hợp từ hóa đơn đã thanh toán)
+      const paidList = list.filter(inv => inv.trangthaithanhtoan === 'DaThanhToan')
+      const mappedCashbook = paidList.map(inv => ({
+        id: `PT-${String(inv.mahd).padStart(3, '0')}`,
+        type: 'THU',
+        category: 'Thu viện phí',
+        refCode: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
+        amount: inv.totalAmount || 0,
+        method: inv.paymentMethod || 'Chuyển khoản (VietQR)',
+        payer: inv.patientName || 'Bệnh Nhân',
+        note: `Thu viện phí BN ${inv.patientName || 'Bệnh Nhân'} (${inv.code || 'HD00' + inv.mahd})`,
+        createdAt: inv.date || formatDateTime(new Date())
+      }))
+      setCashbook([...mappedCashbook, ...INITIAL_CASHBOOK.filter(c => c.type === 'CHI')])
     } catch (err) {
       console.warn('[AccountantPortal] Lỗi tải dữ liệu hóa đơn:', err.message)
     } finally {

@@ -85,9 +85,11 @@ export default function DoctorLayout({
     }
   ]
 
-  const doctorName = user?.fullName || user?.hoten || 'BS. CKII. Nguyễn Hoàng Nam'
-  const doctorDepartment = user?.chuyenkhoa || user?.khoa || 'Khoa Mắt Kỹ Thuật Cao'
-  const clinicRoom = user?.phongkham || 'Phòng Khám Nội 01 (P.102)'
+  const rawName = user?.fullName || user?.hoten || 'Bác Sĩ'
+  const prefix = user?.hocham ? `${user.hocham}. ` : (rawName.startsWith('BS') || rawName.startsWith('TS') ? '' : 'BS. ')
+  const doctorName = rawName.startsWith('BS') || rawName.startsWith('TS') ? rawName : `${prefix}${rawName}`
+  const doctorDepartment = user?.chuyenkhoa || user?.khoa || 'Phòng Khám Đa Khoa'
+  const clinicRoom = user?.phongkham || `Bàn Khám ${doctorDepartment}`
 
   return (
     <div className="ad-wrapper">
@@ -262,10 +264,18 @@ export default function DoctorLayout({
             {/* User Profile Pill */}
             <div className="ad-user-pill">
               <div 
-                className="ad-user-avatar"
+                className="ad-user-avatar overflow-hidden p-0"
                 style={{ background: 'linear-gradient(135deg, #175cdd, #10b981)' }}
               >
-                BS
+                {user?.hinhanh || user?.avatar || user?.image ? (
+                  <img 
+                    src={user.hinhanh || user.avatar || user.image} 
+                    alt={doctorName} 
+                    className="w-100 h-100 object-fit-cover" 
+                  />
+                ) : (
+                  'BS'
+                )}
               </div>
               <div className="d-none d-sm-block text-start">
                 <div className="fw-bold text-dark text-truncate" style={{ fontSize: '13px', lineHeight: '1.2', maxWidth: '170px' }}>

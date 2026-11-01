@@ -14,6 +14,7 @@ model bacsi {
   sogiayphephanhnghe String       @unique @db.VarChar(50)
   hocham             String?      @db.VarChar(50)
   kinhnghiem         Int          @default(0)
+  hinhanh            String?      @db.Text
   chuyenkhoa         chuyenkhoa   @relation(fields: [mack], references: [mack], map: "fk_bacsi_chuyenkhoa")
   nhanvien           nhanvien     @relation(fields: [mabs], references: [manv], onDelete: Cascade, map: "fk_bacsi_nhanvien")
   lichhen            lichhen[]

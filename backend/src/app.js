@@ -48,8 +48,8 @@ app.use(
     }),
 );
 app.use(morgan("dev")); // Log các request gửi lên server trong môi trường dev
-app.use(express.json()); // Phân tích dữ liệu JSON từ body request
-app.use(express.urlencoded({ extended: true })); // Phân tích dữ liệu từ urlencoded form
+app.use(express.json({ limit: "10mb" })); // Phân tích dữ liệu JSON từ body request (hỗ trợ ảnh đại diện Base64)
+app.use(express.urlencoded({ extended: true, limit: "10mb" })); // Phân tích dữ liệu từ urlencoded form
 
 // ========================================================
 // 2. ROUTE KIỂM TRA HỆ THỐNG (HEALTH CHECK)

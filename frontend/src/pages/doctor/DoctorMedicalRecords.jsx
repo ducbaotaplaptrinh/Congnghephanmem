@@ -1,135 +1,75 @@
 import { useState, useEffect } from 'react'
 import DoctorLayout from '../../components/layout/DoctorLayout'
 import medicalRecordService from '../../services/medicalRecordService'
-
-const INITIAL_RECORDS = [
-  { 
-    id: 1, 
-    code: 'BA001', 
-    patientName: 'Nguyễn Văn An', 
-    age: 65, 
-    gender: 'Nam', 
-    phone: '0901 234 567',
-    address: 'Số 123 Nguyễn Huệ, Quận 1, TP.HCM',
-    date: '2026-10-01', 
-    diagnosis: 'Tăng huyết áp vô căn độ 1 (I10)', 
-    symptoms: 'Đau đầu, chóng mặt khi làm việc căng thẳng, thỉnh thoảng hồi hộp', 
-    treatment: 'Amlodipine 5mg, Atorvastatin 20mg. Tái khám sau 2 tuần.',
-    bp: '140/90 mmHg',
-    status: 'Đã hoàn thành',
-    doctorName: 'BS. CKII. Nguyễn Hoàng Nam'
-  },
-  { 
-    id: 2, 
-    code: 'BA002', 
-    patientName: 'Trần Thị Mai', 
-    age: 32, 
-    gender: 'Nữ', 
-    phone: '0912 345 678',
-    address: 'Số 45 Lê Lợi, Quận 3, TP.HCM',
-    date: '2026-10-03', 
-    diagnosis: 'Viêm mũi họng cấp tính (J00)', 
-    symptoms: 'Sốt nhẹ 38 độ, ho khan, rát họng kéo dài 3 ngày', 
-    treatment: 'Kháng sinh Augmentin 1g, Paracetamol 500mg, súc họng nước muối.',
-    bp: '110/70 mmHg',
-    status: 'Đã hoàn thành',
-    doctorName: 'BS. CKII. Nguyễn Hoàng Nam'
-  },
-  { 
-    id: 3, 
-    code: 'BA003', 
-    patientName: 'Lê Hoàng Long', 
-    age: 45, 
-    gender: 'Nam', 
-    phone: '0987 654 321',
-    address: 'Bình Thạnh, TP.HCM',
-    date: '2026-10-04', 
-    diagnosis: 'Rối loạn tuần hoàn não (G44)', 
-    symptoms: 'Mất ngủ, hoa mắt khi thay đổi tư thế, mệt mỏi', 
-    treatment: 'Ginkgo Biloba, Piracetam 800mg, tập thở dưỡng sinh.',
-    bp: '125/80 mmHg',
-    status: 'Đang theo dõi',
-    doctorName: 'BS. CKII. Nguyễn Hoàng Nam'
-  },
-  { 
-    id: 4, 
-    code: 'BA004', 
-    patientName: 'Phạm Hương Giang', 
-    age: 28, 
-    gender: 'Nữ', 
-    phone: '0933 221 100',
-    address: 'Thủ Đức, TP.HCM',
-    date: '2026-10-05', 
-    diagnosis: 'Viêm loét dạ dày tá tràng (K29)', 
-    symptoms: 'Đau tức vùng thượng vị sau khi ăn no hoặc khi đói', 
-    treatment: 'Esomeprazole 40mg, Phosphalugel gói trước ăn.',
-    bp: '105/65 mmHg',
-    status: 'Đã hoàn thành',
-    doctorName: 'BS. CKII. Nguyễn Hoàng Nam'
-  }
-]
+import { useAuth } from '../../hooks/useAuth'
 
 export default function DoctorMedicalRecords() {
-  const [records, setRecords] = useState(INITIAL_RECORDS)
+  const { user } = useAuth()
+  const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
 
-  // Nạp dữ liệu hồ sơ bệnh án từ Supabase Database
+  // Nạp dữ liệu hồ sơ bệnh án từ Backend API
   useEffect(() => {
     async function fetchRecords() {
       setLoading(true)
       try {
         const dbRecords = await medicalRecordService.getAll()
-        if (Array.isArray(dbRecords) && dbRecords.length > 0) {
-          const mapped = dbRecords.map(r => {
-            let docName = 'BS. CKII. Nguyễn Hoàng Nam'
-            if (r.doctorName && !r.doctorName.includes('Trần Văn Hùng')) {
-              docName = r.doctorName
-            } else if (r.bacsi?.hoten) {
-              docName = r.bacsi.hocham ? `${r.bacsi.hocham}. ${r.bacsi.hoten}` : `BS. ${r.bacsi.hoten}`
-            }
+        
+        // Lọc hồ sơ bệnh án do chính bác sĩ này khám
+        const myRecords = (dbRecords || []).filter(r => {
+          if (user?.mabs && r.mabs) return Number(r.mabs) === Number(user.mabs)
+          if (user?.fullName && r.doctorName) return r.doctorName.toLowerCase().includes(user.fullName.toLowerCase())
+          return false
+        })
 
-            return {
-              id: r.id || r.malsk,
-              code: r.code || `BA${String(r.malsk || r.id).padStart(3, '0')}`,
-              patientName: r.patientName || r.benhnhan?.hoten || 'Bệnh Nhân',
-              age: r.benhnhan?.ngaysinh 
-                ? (new Date().getFullYear() - new Date(r.benhnhan.ngaysinh).getFullYear()) 
-                : 30,
-              gender: r.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam',
-              phone: r.benhnhan?.sdt || '0901 234 567',
-              address: r.benhnhan?.diachi || 'TP. Hồ Chí Minh',
-              date: r.date || r.ngay || new Date().toISOString().split('T')[0],
-              diagnosis: r.diagnosis || r.chandoan || 'Khám bệnh định kỳ',
-              symptoms: r.symptoms || r.trieuchung || 'Không có triệu chứng bất thường',
-              treatment: r.treatment || r.ketluan || 'Theo dõi thêm tại nhà',
-              bp: '120/80 mmHg',
-              status: 'Đã hoàn thành',
-              doctorName: docName,
-              prescription: r.prescription || null
-            }
-          })
+        const mapped = myRecords.map(r => {
+          let docName = user?.fullName 
+            ? (user.hocham ? `${user.hocham}. ${user.fullName}` : `BS. ${user.fullName}`)
+            : 'Bác sĩ phụ trách'
+            
+          if (r.doctorName && !r.doctorName.includes('Trần Văn Hùng') && !r.doctorName.includes('Nguyễn Hoàng Nam')) {
+            docName = r.doctorName
+          } else if (r.bacsi?.nhanvien?.hoten) {
+            docName = r.bacsi.hocham ? `${r.bacsi.hocham}. ${r.bacsi.nhanvien.hoten}` : `BS. ${r.bacsi.nhanvien.hoten}`
+          } else if (r.bacsi?.hoten) {
+            docName = r.bacsi.hocham ? `${r.bacsi.hocham}. ${r.bacsi.hoten}` : `BS. ${r.bacsi.hoten}`
+          }
 
-          // Kết hợp danh sách từ DB
-          const combined = [...mapped]
-          INITIAL_RECORDS.forEach(initR => {
-            if (!combined.some(c => c.code === initR.code || c.patientName === initR.patientName)) {
-              combined.push(initR)
-            }
-          })
-          setRecords(combined)
-        }
+          return {
+            id: r.id || r.malsk,
+            code: r.code || `BA${String(r.malsk || r.id).padStart(3, '0')}`,
+            patientName: r.patientName || r.benhnhan?.hoten || 'Bệnh Nhân',
+            age: r.benhnhan?.ngaysinh 
+              ? (new Date().getFullYear() - new Date(r.benhnhan.ngaysinh).getFullYear()) 
+              : 30,
+            gender: r.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam',
+            phone: r.benhnhan?.sdt || r.phone || '0901 234 567',
+            address: r.benhnhan?.diachi || r.address || 'TP. Hồ Chí Minh',
+            date: r.date || r.ngay || new Date().toISOString().split('T')[0],
+            diagnosis: r.diagnosis || r.chandoan || 'Khám bệnh định kỳ',
+            symptoms: r.symptoms || r.trieuchung || 'Không có triệu chứng bất thường',
+            treatment: r.treatment || r.ketluan || 'Theo dõi thêm tại nhà',
+            bp: '120/80 mmHg',
+            status: 'Đã hoàn thành',
+            doctorName: docName,
+            prescription: r.prescription || null
+          }
+        })
+
+        setRecords(mapped)
       } catch (err) {
-        console.warn('Lỗi nạp hồ sơ bệnh án:', err.message)
+        console.error('Lỗi nạp hồ sơ bệnh án:', err.message)
+        setRecords([])
       } finally {
         setLoading(false)
       }
     }
 
     fetchRecords()
-  }, [])
+  }, [user])
 
   const filtered = records.filter(r => 
     r.patientName.toLowerCase().includes(search.toLowerCase()) || 
@@ -301,7 +241,7 @@ export default function DoctorMedicalRecords() {
                   <i className="bi bi-journal-medical fs-4"></i>
                   <div>
                     <h5 className="modal-title fw-bold mb-0">Hồ Sơ Bệnh Án Điện Tử #{selectedRecord.code}</h5>
-                    <div className="small opacity-75">Ngày lập: {selectedRecord.date} • Bác sĩ phụ trách: {selectedRecord.doctorName || 'BS. CKII. Nguyễn Hoàng Nam'}</div>
+                    <div className="small opacity-75">Ngày lập: {selectedRecord.date} • Bác sĩ phụ trách: {selectedRecord.doctorName || user?.fullName || 'Bác sĩ phụ trách'}</div>
                   </div>
                 </div>
                 <button 

@@ -56,12 +56,6 @@ export default function Login() {
     }
   }
 
-  const handleQuickLogin = (username, pwd = '123456', role = 'ADMIN') => {
-    setSelectedRole(role)
-    setEmail(username)
-    setPassword(pwd)
-  }
-
   return (
     <div className="pk-auth-wrapper">
       <div className="pk-auth-card">
@@ -199,41 +193,6 @@ export default function Login() {
             )}
           </button>
         </form>
-
-        {/* Nút đăng nhập thử nhanh */}
-        <div className="pk-quick-demo">
-          <span className="pk-quick-label">Tài khoản dùng thử (Bấm để điền):</span>
-          <div className="pk-quick-btns">
-            <button
-              type="button"
-              className={`pk-quick-btn ${selectedRole === 'ADMIN' ? 'active' : ''}`}
-              onClick={() => handleQuickLogin('admin', '123456', 'ADMIN')}
-            >
-              Quản trị viên
-            </button>
-            <button
-              type="button"
-              className={`pk-quick-btn ${selectedRole === 'DOCTOR' ? 'active' : ''}`}
-              onClick={() => handleQuickLogin('bs_hoangnam', 'Password123@', 'DOCTOR')}
-            >
-              Bác sĩ
-            </button>
-            <button
-              type="button"
-              className={`pk-quick-btn ${selectedRole === 'ACCOUNTANT' ? 'active' : ''}`}
-              onClick={() => handleQuickLogin('ketoan', '123456', 'ACCOUNTANT')}
-            >
-              Kế toán
-            </button>
-            <button
-              type="button"
-              className={`pk-quick-btn ${selectedRole === 'PATIENT' ? 'active' : ''}`}
-              onClick={() => handleQuickLogin('bao01', '123456', 'PATIENT')}
-            >
-              Bệnh nhân
-            </button>
-          </div>
-        </div>
 
         <div className="pk-auth-switch">
           <span>Chưa có tài khoản?</span>

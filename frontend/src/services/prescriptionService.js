@@ -34,9 +34,11 @@ function normalizePrescription(p) {
     duration: m.thoigiansudung || ''
   }))
 
-  const docName = p.bacsi?.hoten 
-    ? (p.bacsi.hocham ? `${p.bacsi.hocham}. ${p.bacsi.hoten}` : `BS. ${p.bacsi.hoten}`)
-    : (p.doctorName && !p.doctorName.includes('Trần Văn Hùng') ? p.doctorName : 'BS. CKII. Nguyễn Hoàng Nam')
+  const docName = p.bacsi?.nhanvien?.hoten 
+    ? (p.bacsi.hocham ? `${p.bacsi.hocham}. ${p.bacsi.nhanvien.hoten}` : `BS. ${p.bacsi.nhanvien.hoten}`)
+    : (p.bacsi?.hoten 
+      ? (p.bacsi.hocham ? `${p.bacsi.hocham}. ${p.bacsi.hoten}` : `BS. ${p.bacsi.hoten}`)
+      : (p.doctorName || 'Bác sĩ điều trị'))
 
   const patAge = p.benhnhan?.ngaysinh 
     ? (new Date().getFullYear() - new Date(p.benhnhan.ngaysinh).getFullYear()) 

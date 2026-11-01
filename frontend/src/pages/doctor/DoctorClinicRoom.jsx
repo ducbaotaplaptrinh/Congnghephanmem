@@ -7,27 +7,7 @@ import prescriptionService from '../../services/prescriptionService'
 import { useAuth } from '../../hooks/useAuth'
 import './doctor.css'
 
-const INITIAL_QUEUE = [
-  {
-    id: 1,
-    malh: 1,
-    mabn: 1,
-    stt: '01',
-    patientCode: 'BN001',
-    name: 'Nguyễn Văn An',
-    age: 65,
-    gender: 'Nam',
-    phone: '0901 234 567',
-    address: 'Quận 5, TP.HCM',
-    insurance: 'BHYT-DN4791234567890',
-    allergies: 'Dị ứng thuốc Penicillin & NSAIDs',
-    vitalSigns: { bp: '135/85', pulse: 78, temp: 36.8, spo2: 98, weight: 68, height: 168 },
-    reason: 'Đau tức ngực nhẹ, thỉnh thoảng hồi hộp đánh trống ngực',
-    status: 'IN_PROGRESS',
-    registeredTime: '07:45',
-    diagnosedHistory: 'Tăng huyết áp vô căn (2 năm), Rối loạn mỡ máu'
-  }
-]
+const INITIAL_QUEUE = []
 
 const SAMPLE_MEDICINES = [
   { id: 1, mathuoc: 1, name: 'Amlodipine 5mg', tenthuoc: 'Amlodipine 5mg', unit: 'Viên', donvitinh: 'Viên', defaultDosage: '1 viên/ngày (Sáng sau ăn)', price: 3500, dongia: 3500 },
@@ -40,9 +20,9 @@ const SAMPLE_MEDICINES = [
 
 export default function DoctorClinicRoom() {
   const { user } = useAuth()
-  const [queue, setQueue] = useState(INITIAL_QUEUE)
+  const [queue, setQueue] = useState([])
   const [medicinesList, setMedicinesList] = useState(SAMPLE_MEDICINES)
-  const [selectedPatientId, setSelectedPatientId] = useState(1)
+  const [selectedPatientId, setSelectedPatientId] = useState(null)
   const [filterStatus, setFilterStatus] = useState('ALL')
   const [alertSuccess, setAlertSuccess] = useState('')
 
@@ -59,62 +39,78 @@ export default function DoctorClinicRoom() {
           setMedicinesList(medsData)
         }
 
-        if (Array.isArray(aptsData) && aptsData.length > 0) {
+        if (Array.isArray(aptsData)) {
           const todayStr = new Date().toISOString().split('T')[0]
-          // Ưu tiên lịch hẹn hôm nay của bác sĩ hoặc tất cả lịch hẹn hôm nay
-          const todayApts = aptsData.filter(a => {
+          
+          // Lọc lịch hẹn của chính bác sĩ đang đăng nhập
+          let doctorApts = aptsData
+          if (user?.role === 'DOCTOR') {
+            doctorApts = aptsData.filter(a => {
+              if (user.mabs && a.mabs) return Number(a.mabs) === Number(user.mabs)
+              if (user.fullName && a.doctorName) return a.doctorName.toLowerCase().includes(user.fullName.toLowerCase())
+              return false
+            })
+          }
+
+          // Lọc lịch hẹn hôm nay nếu có, hoặc danh sách lịch hẹn của bác sĩ
+          const todayApts = doctorApts.filter(a => {
             const aDate = a.appointmentDate || a.date
             return aDate === todayStr
           })
-          const activeApts = todayApts.length > 0 ? todayApts : aptsData
+          const activeApts = todayApts.length > 0 ? todayApts : doctorApts
 
-          let hasFoundActive = false
-          const mappedQueue = activeApts.map((apt, idx) => {
-            const age = apt.benhnhan?.ngaysinh 
-              ? (new Date().getFullYear() - new Date(apt.benhnhan.ngaysinh).getFullYear()) 
-              : 30
+          if (activeApts.length > 0) {
+            let hasFoundActive = false
+            const mappedQueue = activeApts.map((apt, idx) => {
+              const age = apt.benhnhan?.ngaysinh 
+                ? (new Date().getFullYear() - new Date(apt.benhnhan.ngaysinh).getFullYear()) 
+                : 30
 
-            const isCompleted = apt.trangthai === 'DaKham' || apt.status === 'COMPLETED'
-            let patientStatus = 'WAITING'
-            if (isCompleted) {
-              patientStatus = 'COMPLETED'
-            } else if (!hasFoundActive) {
-              patientStatus = 'IN_PROGRESS'
-              hasFoundActive = true
+              const isCompleted = apt.trangthai === 'DaKham' || apt.status === 'COMPLETED'
+              let patientStatus = 'WAITING'
+              if (isCompleted) {
+                patientStatus = 'COMPLETED'
+              } else if (!hasFoundActive) {
+                patientStatus = 'IN_PROGRESS'
+                hasFoundActive = true
+              }
+
+              return {
+                id: apt.id,
+                malh: apt.malh || apt.id,
+                mabn: apt.mabn || (apt.benhnhan?.mabn || 1),
+                stt: String(idx + 1).padStart(2, '0'),
+                patientCode: apt.code ? `BN${String(apt.mabn || apt.id).padStart(3, '0')}` : `BN00${apt.id}`,
+                name: apt.patientName || apt.benhnhan?.hoten || 'Bệnh Nhân',
+                age: age > 0 ? age : 28,
+                gender: apt.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam',
+                phone: apt.phone || apt.benhnhan?.sdt || '0901234567',
+                address: apt.benhnhan?.diachi || 'TP. Hồ Chí Minh',
+                insurance: apt.benhnhan?.sobhyt ? `BHYT-${apt.benhnhan.sobhyt}` : 'Khám Dịch Vụ',
+                allergies: apt.benhnhan?.hosobenhan?.diung || 'Không ghi nhận dị ứng',
+                vitalSigns: { bp: '120/80', pulse: 78, temp: 36.8, spo2: 98, weight: 65, height: 168 },
+                reason: apt.notes || apt.lydokham || 'Khám sức khỏe định kỳ',
+                status: patientStatus,
+                registeredTime: apt.timeSlot || '08:00',
+                diagnosedHistory: apt.benhnhan?.hosobenhan?.tiensubenh || 'Chưa ghi nhận tiền sử bệnh lý'
+              }
+            })
+
+            setQueue(mappedQueue)
+
+            // Chọn bệnh nhân đang khám (IN_PROGRESS) hoặc bệnh nhân đầu tiên
+            const activePatient = mappedQueue.find(p => p.status === 'IN_PROGRESS') || 
+                                  mappedQueue.find(p => p.status === 'WAITING') || 
+                                  mappedQueue[0]
+
+            if (activePatient) {
+              setSelectedPatientId(activePatient.id)
+              setVitalSigns(activePatient.vitalSigns)
+              setSymptoms(activePatient.reason)
             }
-
-            return {
-              id: apt.id,
-              malh: apt.malh || apt.id,
-              mabn: apt.mabn || (apt.benhnhan?.mabn || 1),
-              stt: String(idx + 1).padStart(2, '0'),
-              patientCode: apt.code ? `BN${String(apt.mabn || apt.id).padStart(3, '0')}` : `BN00${apt.id}`,
-              name: apt.patientName || apt.benhnhan?.hoten || 'Bệnh Nhân',
-              age: age > 0 ? age : 28,
-              gender: apt.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam',
-              phone: apt.phone || apt.benhnhan?.sdt || '0901234567',
-              address: apt.benhnhan?.diachi || 'TP. Hồ Chí Minh',
-              insurance: apt.benhnhan?.sobhyt ? `BHYT-${apt.benhnhan.sobhyt}` : 'Khám Dịch Vụ',
-              allergies: apt.benhnhan?.hosobenhan?.diung || 'Không ghi nhận dị ứng',
-              vitalSigns: { bp: '120/80', pulse: 78, temp: 36.8, spo2: 98, weight: 65, height: 168 },
-              reason: apt.notes || apt.lydokham || 'Khám sức khỏe định kỳ',
-              status: patientStatus,
-              registeredTime: apt.timeSlot || '08:00',
-              diagnosedHistory: apt.benhnhan?.hosobenhan?.tiensubenh || 'Chưa ghi nhận tiền sử bệnh lý'
-            }
-          })
-
-          setQueue(mappedQueue)
-
-          // Chọn bệnh nhân đang khám (IN_PROGRESS) hoặc bệnh nhân đầu tiên
-          const activePatient = mappedQueue.find(p => p.status === 'IN_PROGRESS') || 
-                                mappedQueue.find(p => p.status === 'WAITING') || 
-                                mappedQueue[0]
-
-          if (activePatient) {
-            setSelectedPatientId(activePatient.id)
-            setVitalSigns(activePatient.vitalSigns)
-            setSymptoms(activePatient.reason)
+          } else {
+            setQueue([])
+            setSelectedPatientId(null)
           }
         }
       } catch (err) {
@@ -396,8 +392,15 @@ export default function DoctorClinicRoom() {
 
           {/* Danh sách thẻ bệnh nhân xếp dọc */}
           <div className="queue-list">
-            {filteredQueue.map((patient) => {
-              const isSelected = patient.id === currentPatient.id
+            {filteredQueue.length === 0 ? (
+              <div className="text-center py-5 text-muted px-3">
+                <i className="bi bi-inbox fs-2 d-block mb-2 text-secondary opacity-50"></i>
+                <div className="fw-semibold text-dark">Hàng chờ rỗng</div>
+                <div className="small text-muted mt-1">Chưa có bệnh nhân nào được phân công cho bác sĩ.</div>
+              </div>
+            ) : (
+              filteredQueue.map((patient) => {
+                const isSelected = patient.id === currentPatient.id
               const isExamining = patient.status === 'IN_PROGRESS'
               
               return (
@@ -488,7 +491,8 @@ export default function DoctorClinicRoom() {
                   </div>
                 </div>
               )
-            })}
+            })
+          )}
           </div>
 
           {/* Nút gọi tiếp */}
@@ -513,7 +517,26 @@ export default function DoctorClinicRoom() {
 
         {/* ================= CỘT PHẢI: BÀN KHÁM & CHẨN ĐOÁN & KÊ ĐƠN ================= */}
         <div className="d-flex flex-column gap-3">
-
+          {queue.length === 0 ? (
+            <div className="card border-0 shadow-sm rounded-4 p-5 bg-white text-center my-auto">
+              <div className="py-5 my-3">
+                <div 
+                  className="rounded-circle bg-primary-subtle text-primary mx-auto d-flex align-items-center justify-content-center mb-3 shadow-sm"
+                  style={{ width: '72px', height: '72px', fontSize: '32px' }}
+                >
+                  <i className="bi bi-person-check-fill"></i>
+                </div>
+                <h4 className="fw-bold text-dark mb-2">Bàn Khám Bệnh - {user?.fullName || 'Bác Sĩ'}</h4>
+                <p className="text-secondary mx-auto mb-3" style={{ maxWidth: '500px', fontSize: '14.5px' }}>
+                  Hiện tại hàng chờ chưa có bệnh nhân nào được phân công cho bác sĩ. Khi bệnh nhân đặt hẹn hoặc được Lễ tân điều phối, thông tin sẽ tự động hiển thị tại đây.
+                </p>
+                <div className="badge bg-light text-secondary border px-3 py-2 fw-normal">
+                  <i className="bi bi-clock-history me-1 text-primary"></i> Sẵn sàng tiếp nhận bệnh nhân mới
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
           {/* 1. THÔNG TIN HÀNH CHÍNH & CẢNH BÁO DỊ ỨNG */}
           <div className="doc-card">
             <div className="doc-card-body">
@@ -934,7 +957,8 @@ export default function DoctorClinicRoom() {
               </div>
             </div>
           </div>
-
+          </>
+        )}
         </div>
 
       </div>
@@ -1164,7 +1188,7 @@ export default function DoctorClinicRoom() {
               <div style={{ textAlign: 'center', minWidth: '220px' }}>
                 <div style={{ fontSize: '10pt', fontStyle: 'italic' }}>Ngày {new Date().getDate()} tháng {new Date().getMonth() + 1} năm {new Date().getFullYear()}</div>
                 <div style={{ fontWeight: 'bold', margin: '4px 0 55px 0' }}>Bác sĩ khám bệnh</div>
-                <div style={{ fontWeight: 'bold', fontSize: '11.5pt' }}>BS. CKII. Trần Văn Hùng</div>
+                <div style={{ fontWeight: 'bold', fontSize: '11.5pt' }}>{user?.fullName ? (user.hocham ? `${user.hocham}. ${user.fullName}` : `BS. ${user.fullName}`) : 'Bác sĩ khám bệnh'}</div>
               </div>
             </div>
           </div>
@@ -1285,7 +1309,7 @@ export default function DoctorClinicRoom() {
             <div style={{ textAlign: 'center', minWidth: '220px' }}>
               <div style={{ fontSize: '10pt', fontStyle: 'italic' }}>Ngày {new Date().getDate()} tháng {new Date().getMonth() + 1} năm {new Date().getFullYear()}</div>
               <div style={{ fontWeight: 'bold', margin: '4px 0 55px 0' }}>Bác sĩ khám bệnh</div>
-              <div style={{ fontWeight: 'bold', fontSize: '11.5pt' }}>BS. CKII. Trần Văn Hùng</div>
+              <div style={{ fontWeight: 'bold', fontSize: '11.5pt' }}>{user?.fullName ? (user.hocham ? `${user.hocham}. ${user.fullName}` : `BS. ${user.fullName}`) : 'Bác sĩ khám bệnh'}</div>
             </div>
           </div>
         </div>

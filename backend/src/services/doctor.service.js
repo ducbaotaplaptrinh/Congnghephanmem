@@ -284,6 +284,7 @@ async function createDoctorService(doctorData) {
         ngayvaolam,
         username,
         password,
+        hinhanh,
     } = doctorData;
 
     // Kiểm tra chuyên khoa có tồn tại không
@@ -371,6 +372,7 @@ async function createDoctorService(doctorData) {
                 sogiayphephanhnghe,
                 hocham: hocham || null,
                 kinhnghiem: kinhnghiem !== undefined ? Number(kinhnghiem) : 0,
+                hinhanh: hinhanh || null,
             },
             include: {
                 nhanvien: {
@@ -467,6 +469,7 @@ async function updateDoctorService(mabs, updateData) {
     if (updateData.sogiayphephanhnghe !== undefined) doctorFields.sogiayphephanhnghe = updateData.sogiayphephanhnghe;
     if (updateData.hocham !== undefined) doctorFields.hocham = updateData.hocham;
     if (updateData.kinhnghiem !== undefined) doctorFields.kinhnghiem = Number(updateData.kinhnghiem);
+    if (updateData.hinhanh !== undefined) doctorFields.hinhanh = updateData.hinhanh || null;
 
     const employeeFields = {};
     if (updateData.hoten !== undefined) employeeFields.hoten = updateData.hoten;

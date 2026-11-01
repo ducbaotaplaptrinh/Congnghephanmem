@@ -3,23 +3,19 @@ import DoctorLayout from '../../components/layout/DoctorLayout'
 import patientService from '../../services/patientService'
 import medicalRecordService from '../../services/medicalRecordService'
 import appointmentService from '../../services/appointmentService'
+import { useAuth } from '../../hooks/useAuth'
 
-const INITIAL_PATIENTS = [
-  { id: 1, mabn: 1, code: 'BN001', name: 'Nguyễn Đức Bảo', age: 21, gender: 'Nam', phone: '0912 345 372', address: '123 Đường Nguyễn Trãi, Quận 1, TP.HCM', lastVisit: '2026-10-26', totalVisits: 2, mainDiagnosis: 'Cận thị tiến triển - Viêm kết mạc', status: 'Đã hoàn thành khám' },
-  { id: 2, mabn: 2, code: 'BN002', name: 'Nguyễn Văn An', age: 65, gender: 'Nam', phone: '0901 234 567', address: 'Số 123 Nguyễn Huệ, Quận 1, TP.HCM', lastVisit: '2026-10-01', totalVisits: 4, mainDiagnosis: 'Tăng huyết áp vô căn (I10)', status: 'Đang theo dõi' },
-  { id: 3, mabn: 3, code: 'BN003', name: 'Trần Thị Mai', age: 32, gender: 'Nữ', phone: '0912 345 678', address: 'Số 45 Lê Lợi, Quận 3, TP.HCM', lastVisit: '2026-10-03', totalVisits: 2, mainDiagnosis: 'Viêm mũi họng cấp (J00)', status: 'Khỏi bệnh' },
-  { id: 4, mabn: 4, code: 'BN004', name: 'Lê Hoàng Long', age: 45, gender: 'Nam', phone: '0987 654 321', address: 'Bình Thạnh, TP.HCM', lastVisit: '2026-10-04', totalVisits: 3, mainDiagnosis: 'Rối loạn tuần hoàn não (G44)', status: 'Đang theo dõi' },
-  { id: 5, mabn: 5, code: 'BN005', name: 'Phạm Hương Giang', age: 28, gender: 'Nữ', phone: '0933 221 100', address: 'Thủ Đức, TP.HCM', lastVisit: '2026-10-05', totalVisits: 1, mainDiagnosis: 'Viêm loét dạ dày (K29)', status: 'Đang dùng thuốc' }
-]
+const INITIAL_PATIENTS = []
 
 export default function DoctorPatients() {
-  const [patients, setPatients] = useState(INITIAL_PATIENTS)
+  const { user } = useAuth()
+  const [patients, setPatients] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [patientHistory, setPatientHistory] = useState([])
 
-  // Nạp dữ liệu bệnh nhân từ Database Supabase
+  // Nạp dữ liệu bệnh nhân từ Database
   useEffect(() => {
     async function loadPatientsFromDB() {
       setLoading(true)
@@ -30,20 +26,36 @@ export default function DoctorPatients() {
           appointmentService.getAll()
         ])
 
-        if (Array.isArray(allPatients) && allPatients.length > 0) {
-          const mapped = allPatients.map(p => {
+        // Chỉ lấy các ca khám và lịch hẹn thuộc về bác sĩ này
+        const myRecords = (allRecords || []).filter(r => 
+          (user?.mabs && r.mabs === user.mabs) || 
+          (user?.fullName && r.doctorName?.toLowerCase().includes(user.fullName.toLowerCase()))
+        )
+        const myAppts = (allAppts || []).filter(a =>
+          (user?.mabs && a.mabs === user.mabs) ||
+          (user?.fullName && a.doctorName?.toLowerCase().includes(user.fullName.toLowerCase()))
+        )
+
+        // Tập hợp danh sách ID bệnh nhân của bác sĩ này
+        const myPatientIds = new Set([
+          ...myRecords.map(r => r.mabn),
+          ...myAppts.map(a => a.mabn)
+        ].filter(Boolean))
+
+        const targetPatients = (allPatients || []).filter(p => myPatientIds.has(p.mabn || p.id))
+
+        if (targetPatients.length > 0) {
+          const mapped = targetPatients.map(p => {
             const pId = p.mabn || p.id
             const pName = p.fullName || p.hoten || p.name || 'Bệnh Nhân'
             const pPhone = p.phone || p.sdt || ''
 
-            // Tìm các ca khám tương ứng của bệnh nhân này
-            const visits = allRecords.filter(r => 
+            const visits = myRecords.filter(r => 
               r.mabn === pId || 
               (r.patientName && r.patientName.toLowerCase() === pName.toLowerCase())
             )
 
-            // Tìm các lịch hẹn đã khám
-            const completedAppts = allAppts.filter(a =>
+            const completedAppts = myAppts.filter(a =>
               (a.mabn === pId || (a.patientName && a.patientName.toLowerCase() === pName.toLowerCase())) &&
               (a.trangthai === 'DaKham' || a.status === 'COMPLETED')
             )
@@ -51,8 +63,8 @@ export default function DoctorPatients() {
             const totalCount = Math.max(visits.length, completedAppts.length, 1)
             const latestRecord = visits[0] || null
             const latestAppt = completedAppts[0] || null
-            const lastDate = latestRecord?.date || latestAppt?.appointmentDate || '2026-10-26'
-            const mainDiag = latestRecord?.diagnosis || latestAppt?.notes || p.notes || 'Khám sức khỏe tổng quát'
+            const lastDate = latestRecord?.date || latestAppt?.appointmentDate || 'Hôm nay'
+            const mainDiag = latestRecord?.diagnosis || latestAppt?.notes || p.notes || 'Khám bệnh định kỳ'
 
             const age = p.birthYear 
               ? (new Date().getFullYear() - p.birthYear) 
@@ -78,24 +90,20 @@ export default function DoctorPatients() {
             }
           })
 
-          // Kết hợp danh sách
-          const combined = [...mapped]
-          INITIAL_PATIENTS.forEach(initP => {
-            if (!combined.some(c => c.phone === initP.phone || c.name === initP.name)) {
-              combined.push(initP)
-            }
-          })
-          setPatients(combined)
+          setPatients(mapped)
+        } else {
+          setPatients([])
         }
       } catch (err) {
         console.warn('Lỗi nạp danh sách bệnh nhân từ DB:', err.message)
+        setPatients([])
       } finally {
         setLoading(false)
       }
     }
 
     loadPatientsFromDB()
-  }, [])
+  }, [user])
 
   const filtered = patients.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
