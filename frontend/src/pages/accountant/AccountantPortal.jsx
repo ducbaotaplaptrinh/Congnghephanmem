@@ -118,60 +118,94 @@ export default function AccountantPortal() {
   const loadDataFromDB = async () => {
     try {
       setIsLoading(true)
-      const allInvoices = await invoiceService.getAll()
+      const allInvoices = await invoiceService.getAll({ limit: 100 })
       const list = Array.isArray(allInvoices) ? allInvoices : []
       
-      // 1. Sổ Hóa Đơn & Biên Lai
-      const mappedInvoices = list.map(inv => ({
-        id: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
-        mahd: inv.mahd,
-        code: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
-        patientCode: `BN${String(inv.mabn || 1).padStart(3, '0')}`,
-        patientName: inv.patientName || 'Bệnh Nhân',
-        createdAt: inv.date || formatDateTime(new Date()),
-        totalAmount: inv.totalAmount || 0,
-        insuranceDiscount: inv.insuranceDiscount || ((inv.insuranceNumber || inv.benhnhan?.sobhyt) ? Math.round((inv.totalAmount || 0) * 0.2) : 0),
-        patientPay: inv.totalAmount || 0,
-        paymentMethod: inv.paymentMethod || 'Chưa thanh toán',
-        status: inv.trangthaithanhtoan === 'DaThanhToan' ? 'PAID' : 'UNPAID',
-        cashier: 'Kế Toán Viên (Thu Ngân)',
-        items: (inv.items || []).map((it, idx) => ({
+      // Helper: Bóc tách danh mục chi phí (nếu có tiền khám chưa tạo mục riêng thì tự động đưa vào chi tiết)
+      const buildItemsWithConsultation = (inv) => {
+        const rawItems = (inv.items || []).map((it, idx) => ({
           id: it.id || idx + 1,
           name: it.name || it.tendichvu || 'Dịch vụ / Thuốc',
+          type: it.type || (it.name?.toLowerCase().includes('thuốc') ? 'THUỐC' : 'CLS'),
           qty: it.quantity || it.soluong || 1,
-          price: it.price || it.dongia || 0
+          price: it.price || it.dongia || 0,
+          bhytCovered: !!(inv.insuranceNumber || inv.benhnhan?.sobhyt)
         }))
-      }))
+
+        const itemsSum = rawItems.reduce((s, it) => s + (it.price * it.qty), 0)
+        const diff = (inv.totalAmount || 0) - itemsSum
+
+        const resultItems = [...rawItems]
+        if (diff > 0) {
+          resultItems.unshift({
+            id: 'consultation-fee',
+            name: 'Tiền công khám bệnh & Tư vấn bác sĩ',
+            type: 'KHÁM',
+            qty: 1,
+            price: diff,
+            bhytCovered: true
+          })
+        } else if (resultItems.length === 0) {
+          resultItems.push({
+            id: 1,
+            name: 'Khám bệnh & Dịch vụ y tế',
+            type: 'KHÁM',
+            qty: 1,
+            price: inv.totalAmount || 150000,
+            bhytCovered: true
+          })
+        }
+        return resultItems
+      }
+
+      // 1. Sổ Hóa Đơn & Biên Lai
+      const mappedInvoices = list.map(inv => {
+        const fullItems = buildItemsWithConsultation(inv)
+        return {
+          id: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
+          mahd: inv.mahd,
+          code: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
+          patientCode: `BN${String(inv.mabn || 1).padStart(3, '0')}`,
+          patientName: inv.patientName || inv.benhnhan?.hoten || 'Bệnh Nhân',
+          createdAt: inv.date || formatDateTime(new Date()),
+          totalAmount: inv.totalAmount || 0,
+          insuranceDiscount: inv.insuranceDiscount || ((inv.insuranceNumber || inv.benhnhan?.sobhyt) ? Math.round((inv.totalAmount || 0) * 0.2) : 0),
+          patientPay: inv.totalAmount || 0,
+          paymentMethod: inv.paymentMethod || 'Chưa thanh toán',
+          status: inv.trangthaithanhtoan === 'DaThanhToan' ? 'PAID' : 'UNPAID',
+          cashier: 'Kế Toán Viên (Thu Ngân)',
+          items: fullItems.map(it => ({
+            id: it.id,
+            name: it.name,
+            qty: it.qty,
+            price: it.price
+          }))
+        }
+      })
       setInvoices(mappedInvoices)
 
       // 2. Hàng Chờ Thu Ngân (Các hóa đơn chưa thanh toán)
       const unpaidList = list.filter(inv => inv.trangthaithanhtoan !== 'DaThanhToan')
       if (unpaidList.length > 0) {
-        const mappedQueue = unpaidList.map(inv => ({
-          id: inv.mahd,
-          mahd: inv.mahd,
-          invoiceCode: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
-          patientCode: `BN${String(inv.mabn || 1).padStart(3, '0')}`,
-          patientName: inv.patientName || 'Bệnh Nhân',
-          gender: inv.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam',
-          age: 45,
-          phone: inv.phone || '0901 234 567',
-          doctorName: inv.doctorName || 'BS. CKII Nguyễn Hoàng Nam',
-          department: 'Khoa Khám Bệnh Ngoại Trú',
-          insuranceNumber: inv.insuranceNumber || inv.benhnhan?.sobhyt || '',
-          insuranceRate: (inv.insuranceNumber || inv.benhnhan?.sobhyt) ? 0.8 : 0,
-          createdAt: inv.date || formatDateTime(new Date()),
-          items: (inv.items && inv.items.length > 0) ? inv.items.map((it, idx) => ({
-            id: it.id || idx + 1,
-            name: it.name || it.tendichvu || 'Dịch vụ / Thuốc',
-            type: it.type || (it.name?.toLowerCase().includes('thuốc') ? 'THUỐC' : 'CLS'),
-            qty: it.quantity || it.soluong || 1,
-            price: it.price || it.dongia || 0,
-            bhytCovered: !!(inv.insuranceNumber || inv.benhnhan?.sobhyt)
-          })) : [
-            { id: 1, name: 'Khám bệnh & Dịch vụ y tế', type: 'KHÁM', qty: 1, price: inv.totalAmount || 250000, bhytCovered: true }
-          ]
-        }))
+        const mappedQueue = unpaidList.map(inv => {
+          const fullItems = buildItemsWithConsultation(inv)
+          return {
+            id: inv.mahd,
+            mahd: inv.mahd,
+            invoiceCode: inv.code || `HD${String(inv.mahd).padStart(3, '0')}`,
+            patientCode: `BN${String(inv.mabn || 1).padStart(3, '0')}`,
+            patientName: inv.patientName || inv.benhnhan?.hoten || 'Bệnh Nhân',
+            gender: inv.gender || (inv.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam'),
+            age: 45,
+            phone: inv.phone || inv.benhnhan?.sdt || '0901 234 567',
+            doctorName: inv.doctorName || 'BS. CKII Nguyễn Hoàng Nam',
+            department: 'Khoa Khám Bệnh Ngoại Trú',
+            insuranceNumber: inv.insuranceNumber || inv.benhnhan?.sobhyt || '',
+            insuranceRate: (inv.insuranceNumber || inv.benhnhan?.sobhyt) ? 0.8 : 0,
+            createdAt: inv.date || formatDateTime(new Date()),
+            items: fullItems
+          }
+        })
         setQueue(mappedQueue)
         setSelectedQueuePatient(mappedQueue[0])
       } else {

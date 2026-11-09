@@ -28,6 +28,14 @@ function normalizeInvoice(inv) {
   const patientName = inv.benhnhan?.hoten || inv.patientName || 'Bệnh Nhân'
   const patientPhone = inv.benhnhan?.sdt || inv.phone || ''
 
+  // Lấy tên bác sĩ từ thông tin liên kết lần khám
+  let docName = 'BS. CKII Nguyễn Hoàng Nam'
+  if (inv.lichsukham?.bacsi?.nhanvien?.hoten) {
+    docName = (inv.lichsukham.bacsi.hocham ? `${inv.lichsukham.bacsi.hocham}. ` : 'BS. ') + inv.lichsukham.bacsi.nhanvien.hoten
+  } else if (inv.doctorName) {
+    docName = inv.doctorName
+  }
+
   return {
     id: inv.mahd || inv.id,
     mahd: inv.mahd || inv.id,
@@ -45,6 +53,10 @@ function normalizeInvoice(inv) {
     paymentMethod: methodMap[inv.phuongthuctt] || inv.paymentMethod || (isPaid ? 'Tiền mặt' : 'Chưa thanh toán'),
     phuongthuctt: inv.phuongthuctt || 'TienMat',
     lichsukham: inv.lichsukham || null,
+    benhnhan: inv.benhnhan || null,
+    doctorName: docName,
+    insuranceNumber: inv.benhnhan?.sobhyt || '',
+    gender: inv.benhnhan?.gioitinh === 'Nu' ? 'Nữ' : 'Nam',
     items
   }
 }
@@ -52,7 +64,7 @@ function normalizeInvoice(inv) {
 export const invoiceService = {
   async getAll(params = {}) {
     try {
-      const res = await api.get('/invoices', params)
+      const res = await api.get('/invoices', { limit: 100, ...params })
       const list = Array.isArray(res) 
         ? res 
         : (Array.isArray(res?.data) 
@@ -73,6 +85,17 @@ export const invoiceService = {
       console.error(`[invoiceService.getById] Lỗi nạp chi tiết hóa đơn #${id}:`, err.message)
       return null
     }
+  },
+
+  async create(data) {
+    const payload = {
+      malsk: Number(data.malsk || data.examId),
+      phuongthuctt: data.phuongthuctt || undefined,
+      tongtien: data.tongtien !== undefined ? Number(data.tongtien) : undefined,
+      phikham: data.phikham !== undefined ? Number(data.phikham) : undefined
+    }
+    const res = await api.post('/invoices', payload)
+    return normalizeInvoice(res.data || res)
   },
 
   async updatePayment(id, paymentData = {}) {

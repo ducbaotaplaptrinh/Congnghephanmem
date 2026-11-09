@@ -4,6 +4,7 @@ import appointmentService from '../../services/appointmentService'
 import medicineService from '../../services/medicineService'
 import medicalRecordService from '../../services/medicalRecordService'
 import prescriptionService from '../../services/prescriptionService'
+import invoiceService from '../../services/invoiceService'
 import { useAuth } from '../../hooks/useAuth'
 import './doctor.css'
 
@@ -161,7 +162,8 @@ export default function DoctorClinicRoom() {
   const [medUsageToAdd, setMedUsageToAdd] = useState('')
 
   // ===== TÍNH TOÁN VIỆN PHÍ & TIỀN THUỐC =====
-  const CONSULTATION_FEE = 150000 // Tiền công khám 150.000đ
+  // Tiền công khám (cho phép bác sĩ tùy chỉnh số tiền bất kỳ theo dịch vụ khám)
+  const [consultationFee, setConsultationFee] = useState(150000)
 
   const getMedPrice = (name) => {
     const list = medicinesList.length > 0 ? medicinesList : SAMPLE_MEDICINES
@@ -173,7 +175,7 @@ export default function DoctorClinicRoom() {
     return sum + (getMedPrice(item.medicine) * (item.quantity || 1))
   }, 0)
 
-  const totalInvoiceAmount = CONSULTATION_FEE + totalMedFee
+  const totalInvoiceAmount = consultationFee + totalMedFee
 
   // Tạo URL VietQR động theo số tiền & mã bệnh nhân
   const vietQrUrl = `https://api.vietqr.io/image/970422-02838389999-compact2.jpg?amount=${totalInvoiceAmount}&addInfo=${encodeURIComponent(`TT VP ${currentPatient.patientCode}`)}&accountName=${encodeURIComponent('PHONG KHAM PHU LOI BAO')}`
@@ -244,7 +246,21 @@ export default function DoctorClinicRoom() {
         }
       }
 
-      // 3. Cập nhật trạng thái lịch hẹn thành DaKham (COMPLETED)
+      // 3. Khởi tạo hóa đơn viện phí trên CSDL Supabase để đồng bộ sang Quầy Kế Toán / Thu Ngân
+      let invResult = null
+      if (examId) {
+        try {
+          invResult = await invoiceService.create({
+            malsk: examId,
+            tongtien: totalInvoiceAmount,
+            phikham: consultationFee
+          })
+        } catch (invErr) {
+          console.warn('Lỗi tạo hóa đơn viện phí backend:', invErr.message)
+        }
+      }
+
+      // 4. Cập nhật trạng thái lịch hẹn thành DaKham (COMPLETED)
       if (currentPatient?.malh) {
         try {
           await appointmentService.updateStatus(currentPatient.malh, 'COMPLETED')
@@ -253,16 +269,16 @@ export default function DoctorClinicRoom() {
         }
       }
 
-      // 4. Cập nhật trạng thái bệnh nhân trong hàng chờ
+      // 5. Cập nhật trạng thái bệnh nhân trong hàng chờ
       setQueue(prev => prev.map(p => 
         p.id === selectedPatientId ? { ...p, status: 'COMPLETED' } : p
       ))
 
       const recCode = examResult?.code || `BA00${currentPatient.id}`
       const presCode = presResult?.code || `DT00${currentPatient.id}`
-      const invCode = `HD00${currentPatient.id}`
+      const invCode = invResult?.code || (invResult?.mahd ? `HD${String(invResult.mahd).padStart(3, '0')}` : `HD00${currentPatient.id}`)
 
-      // 5. Cập nhật dữ liệu tóm tắt và mở Modal
+      // 6. Cập nhật dữ liệu tóm tắt và mở Modal
       setSavedDataSummary({
         recordCode: recCode,
         prescriptionCode: presCode,
@@ -270,9 +286,9 @@ export default function DoctorClinicRoom() {
         patientName: currentPatient.name,
         diagnosis: diagnosis,
         medicineCount: prescriptionItems.length,
-        totalAmount: totalInvoiceAmount
+        totalAmount: invResult?.totalAmount || totalInvoiceAmount
       })
-      setAlertSuccess(`Đã lưu thành công Bệnh án #${recCode} & Toa thuốc #${presCode} lên cơ sở dữ liệu!`)
+      setAlertSuccess(`Đã lưu thành công Bệnh án #${recCode}, Toa thuốc #${presCode} và đã chuyển Hóa đơn #${invCode} sang Quầy Kế toán!`)
       setShowSavedModal(true)
     } catch (err) {
       console.error('Lỗi lưu ca khám:', err)
@@ -874,7 +890,19 @@ export default function DoctorClinicRoom() {
               {/* TÓM TẮT VIỆN PHÍ & MÃ QR TRÊN MÀN HÌNH BÁC SĨ */}
               <div className="p-2.5 rounded bg-light border d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 mb-2">
                 <div className="small text-muted d-flex align-items-center gap-2">
-                  <span>Công khám: <strong className="text-dark">{CONSULTATION_FEE.toLocaleString('vi-VN')} đ</strong></span>
+                  <span className="d-inline-flex align-items-center gap-1">
+                    Công khám: 
+                    <input 
+                      type="number" 
+                      min="0"
+                      step="10000"
+                      className="form-control form-control-sm py-0 px-1 text-end fw-bold text-primary border-primary-subtle"
+                      style={{ width: '95px', height: '24px', fontSize: '12px' }}
+                      value={consultationFee}
+                      onChange={(e) => setConsultationFee(Math.max(0, Number(e.target.value) || 0))}
+                      title="Chỉnh sửa số tiền công khám nếu cần"
+                    /> đ
+                  </span>
                   <span>•</span>
                   <span>Tiền thuốc: <strong className="text-dark">{totalMedFee.toLocaleString('vi-VN')} đ</strong></span>
                 </div>
@@ -1140,7 +1168,7 @@ export default function DoctorClinicRoom() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>1. Tiền công khám chuyên khoa:</span>
-                    <strong>{CONSULTATION_FEE.toLocaleString('vi-VN')} đ</strong>
+                    <strong>{consultationFee.toLocaleString('vi-VN')} đ</strong>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span>2. Tiền thuốc trong toa ({prescriptionItems.length} loại):</span>
@@ -1259,7 +1287,7 @@ export default function DoctorClinicRoom() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>1. Tiền công khám chuyên khoa:</span>
-                  <strong>{CONSULTATION_FEE.toLocaleString('vi-VN')} đ</strong>
+                  <strong>{consultationFee.toLocaleString('vi-VN')} đ</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>2. Tiền thuốc trong toa ({prescriptionItems.length} loại):</span>

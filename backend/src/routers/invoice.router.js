@@ -27,11 +27,11 @@ const {
 
 const router = express.Router();
 
-// 1. Khởi tạo hóa đơn từ lần khám bệnh (Admin, Lễ tân / Thu ngân)
+// 1. Khởi tạo hóa đơn từ lần khám bệnh (Admin, Lễ tân / Thu ngân, Bác sĩ khi hoàn thành ca khám)
 router.post(
     "/",
     authMiddleware,
-    roleMiddleware("Admin", "LeTan"),
+    roleMiddleware("Admin", "LeTan", "BacSi"),
     validateCreateInvoice,
     createInvoiceController,
 );
