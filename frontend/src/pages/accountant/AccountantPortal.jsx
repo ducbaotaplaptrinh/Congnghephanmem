@@ -292,14 +292,10 @@ export default function AccountantPortal() {
       const dbMethod = paymentMethod === 'CASH' ? 'TienMat' : (paymentMethod === 'QR' ? 'ChuyenKhoan' : 'TheThanhToan')
 
       // Gọi API cập nhật trạng thái thanh toán trên Supabase Database
-      try {
-        await invoiceService.updatePayment(selectedQueuePatient.id || selectedQueuePatient.mahd, {
-          phuongthuctt: dbMethod,
-          paymentMethod: methodLabel
-        })
-      } catch (apiErr) {
-        console.warn('[handleConfirmPayment] API error hoặc fallback:', apiErr.message)
-      }
+      await invoiceService.updatePayment(selectedQueuePatient.id || selectedQueuePatient.mahd, {
+        phuongthuctt: dbMethod,
+        paymentMethod: methodLabel
+      })
 
       const newInvoiceId = selectedQueuePatient.invoiceCode || `HD-${Date.now().toString().slice(-6)}`
       const newInvoice = {
@@ -345,6 +341,8 @@ export default function AccountantPortal() {
 
       // Tự động mở modal in hóa đơn
       setPrintInvoiceData(newInvoice)
+    } catch (err) {
+      alert('Không thể xác nhận thanh toán. Vui lòng kiểm tra trạng thái hóa đơn trước khi thử lại: ' + err.message)
     } finally {
       setIsProcessingPayment(false)
     }

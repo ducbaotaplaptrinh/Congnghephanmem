@@ -8,6 +8,7 @@ export function usePatients() {
 
   const fetchPatients = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const data = await patientService.getAll()
       setPatients(data)

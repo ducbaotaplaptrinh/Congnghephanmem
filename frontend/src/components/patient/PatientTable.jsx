@@ -43,13 +43,7 @@ export default function PatientTable({ patients = [], onEdit, onDelete, onView }
                 >
                   <i className="bi bi-eye"></i>
                 </button>
-                <button 
-                  className="btn btn-sm btn-outline-warning me-1" 
-                  onClick={() => onEdit && onEdit(p)}
-                  title="Chỉnh sửa"
-                >
-                  <i className="bi bi-pencil"></i>
-                </button>
+
                 <button 
                   className="btn btn-sm btn-outline-danger" 
                   onClick={() => onDelete && onDelete(p.id)}
