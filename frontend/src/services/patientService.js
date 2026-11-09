@@ -49,17 +49,9 @@ function normalizeBloodType(val) {
 
 export const patientService = {
   async getAll(params = {}) {
-    try {
-      const res = await api.get('/patients', params)
-      const rawList = res.data?.patients || (Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []))
-      if (rawList.length > 0) {
-        return rawList.map(normalizePatient)
-      }
-      return initialPatients
-    } catch (err) {
-      console.warn('[patientService] Gọi /patients lỗi, dùng fallback:', err.message)
-      return initialPatients
-    }
+    const res = await api.get('/patients', params)
+    const rawList = res.data?.patients || (Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []))
+    return rawList.map(normalizePatient)
   },
 
   async getById(id) {
@@ -187,11 +179,7 @@ export const patientService = {
   },
 
   async delete(id) {
-    try {
-      return await api.delete(`/patients/${id}`)
-    } catch {
-      return { success: true }
-    }
+    return api.delete(`/patients/${id}`)
   }
 }
 

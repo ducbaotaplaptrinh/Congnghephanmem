@@ -59,6 +59,7 @@ export const authService = {
         status: rawUser.trangthai || 'HoatDong'
       }
 
+      if (!token) throw new Error('Máy chủ không trả về phiên đăng nhập hợp lệ')
       if (token) {
         localStorage.setItem(TOKEN_KEY, token)
         localStorage.setItem('token', token)
@@ -90,22 +91,7 @@ export const authService = {
         user: mappedUser
       }
     } catch (error) {
-      console.warn('[authService] Đăng nhập backend lỗi, dùng mock fallback:', error.message)
-      // Mock login fallback if backend isn't reachable or credentials don't exist yet
-      const isPatient = emailOrUsername?.includes('benhnhan') || emailOrUsername?.includes('patient') || (!emailOrUsername?.includes('admin') && !emailOrUsername?.includes('bacsi') && !emailOrUsername?.includes('ketoan'))
-      const mockRole = emailOrUsername?.includes('admin') ? 'ADMIN' : (emailOrUsername?.includes('bacsi') ? 'DOCTOR' : (emailOrUsername?.includes('ketoan') ? 'ACCOUNTANT' : 'PATIENT'))
-      const mockUser = {
-        id: 1,
-        matk: 1,
-        fullName: mockRole === 'DOCTOR' ? 'BS. CKII. Trần Văn Hùng' : (mockRole === 'ADMIN' ? 'Quản Trị Viên' : (mockRole === 'ACCOUNTANT' ? 'Kế Toán Viên' : 'Nguyễn Văn An')),
-        email: emailOrUsername || 'benhnhan@gmail.com',
-        role: mockRole,
-        status: 'HoatDong'
-      }
-      localStorage.setItem(TOKEN_KEY, 'mock-jwt-token')
-      localStorage.setItem('token', 'mock-jwt-token')
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(mockUser))
-      return { success: true, token: 'mock-jwt-token', user: mockUser }
+      throw error
     }
   },
 
@@ -121,14 +107,17 @@ export const authService = {
       }
       return await api.post('/auth/register', payload)
     } catch (error) {
-      console.warn('[authService] Đăng ký backend lỗi, fallback:', error.message)
-      return { success: true, message: 'Đăng ký tài khoản thành công (Offline mode)!' }
+      throw error
     }
   },
 
   getCurrentUser() {
+    if (!this.isAuthenticated()) {
+      this.logout()
+      return null
+    }
     const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : null
+    try { return raw ? JSON.parse(raw) : null } catch { return null }
   },
 
   logout() {
@@ -138,7 +127,8 @@ export const authService = {
   },
 
   isAuthenticated() {
-    return !!(localStorage.getItem(TOKEN_KEY) || localStorage.getItem('token'))
+    const token = localStorage.getItem(TOKEN_KEY) || localStorage.getItem('token')
+    return !!token && token !== 'mock-jwt-token'
   }
 }
 
