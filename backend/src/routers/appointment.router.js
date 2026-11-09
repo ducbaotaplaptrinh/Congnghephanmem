@@ -26,11 +26,12 @@ const {
 
 const router = express.Router();
 
-// 1. Bệnh nhân đặt lịch trực tuyến / Lễ tân đặt hộ tại quầy
+const { optionalAuthMiddleware } = require("../middlewares/auth.middleware");
+
+// 1. Bệnh nhân đặt lịch trực tuyến (Đã đăng nhập hoặc Khách vãng lai) / Lễ tân đặt hộ tại quầy
 router.post(
     "/",
-    authMiddleware,
-    roleMiddleware("BenhNhan", "Admin", "LeTan"),
+    optionalAuthMiddleware,
     validateCreateAppointment,
     createAppointmentController,
 );

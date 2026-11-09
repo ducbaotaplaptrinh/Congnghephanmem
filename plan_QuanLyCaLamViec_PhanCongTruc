@@ -1,0 +1,207 @@
+# Kế hoạch Triển Khai API Quản Lý Ca Làm Việc & Phân Công Trực (Shift Management)
+
+## 🎯 Goal Description
+Xây dựng phân hệ API hoàn chỉnh phục vụ **Quản lý Ca làm việc (`CaLamViec`)** và **Phân công Nhân sự trực ca (`PhanCongLamViec`)** trong Hệ thống Quản lý Phòng khám (Clinic Management System). Phân hệ này cho phép Admin điều phối lịch trực phòng khám, phân công bác sĩ/y tá vào các ca, tự động phát hiện và ngăn chặn xung đột trùng giờ của phòng khám cũng như của nhân viên y tế, đồng thời cung cấp API tra cứu lịch trực cho nhân viên và tích hợp tài liệu API cho Frontend.
+
+---
+
+## ⚠️ User Review Required
+> [!IMPORTANT]
+> **Quy ước Endpoint & Tên gọi:**
+> - Chúng tôi đề xuất định tuyến thống nhất theo chuẩn RESTful tiếng Anh: `/api/shifts` (tương tự như `/api/rooms`, `/api/doctors`, `/api/services` đã có).
+> - File rỗng `backend/src/services/schedule.service.js` sẽ được thay thế / đổi tên thành `backend/src/services/shift.service.js` để đồng bộ hoàn toàn bộ tệp: `shift.constant.js`, `shift.validator.js`, `shift.service.js`, `shift.controller.js`, `shift.router.js`.
+
+> [!NOTE]
+> **Xử lý Xóa Ca làm việc (Safe Delete vs Cascade):**
+> - Bảng `PhanCongLamViec` trong PostgreSQL có khóa ngoại `ON DELETE CASCADE` tới `CaLamViec`. Khi xóa một ca làm việc, toàn bộ phân công của ca đó sẽ tự động được thu hồi.
+> - Bảng `LichHen` hiện không liên kết trực tiếp khóa ngoại tới `maca` mà gắn với `mabs`, `ngayhen`, `giohen`. Tuy nhiên, nếu một ca đã diễn ra trong quá khứ, ta có thể cảnh báo hoặc ghi nhận log rõ ràng.
+
+---
+
+## ❓ Open Questions
+1. **Phân quyền truy cập xem ca làm việc (`GET /api/shifts`):**
+   - Đề xuất: Cho phép người dùng đã đăng nhập (bao gồm `Admin`, `BacSi`, `YTa`, `LeTan`, và cả `BenhNhan` khi cần xem lịch hoạt động phòng để đặt hẹn) có thể xem danh sách ca làm việc; chỉ riêng các thao tác Thay đổi (`POST`, `PUT`, `DELETE`, `Assign Staff`) được bảo vệ nghiêm ngặt chỉ dành cho `Admin`.
+2. **Hình thức phân công nhân viên khi tạo ca:**
+   - Cho phép tạo ca làm việc trống trước rồi phân công nhân viên sau, HOẶC truyền kèm mảng `assignments: [{ manv: 1, vaitrotrongca: "Bác sĩ khám chính" }]` ngay trong payload tạo ca (`POST /api/shifts`) để giảm số lượng request từ Frontend.
+
+---
+
+## 📐 Kiến trúc & Mô hình Dữ liệu
+
+```mermaid
+erDiagram
+    PhongKham ||--o{ CaLamViec : "diễn ra tại (1-N)"
+    CaLamViec ||--o{ PhanCongLamViec : "phân công (1-N, Cascade)"
+    NhanVien ||--o{ PhanCongLamViec : "tham gia trực (1-N, Cascade)"
+    ChuyenKhoa ||--o{ PhongKham : "thuộc chuyên khoa"
+    NhanVien ||--o| BacSi : "thông tin mở rộng"
+
+    CaLamViec {
+        int maca PK
+        date ngay
+        time giobatdau
+        time gioketthuc
+        int maphong FK
+    }
+
+    PhanCongLamViec {
+        int mapclv PK
+        int manv FK
+        int maca FK
+        string vaitrotrongca
+    }
+```
+
+---
+
+## 🛠️ Proposed Changes
+
+### Component 1: Constants & Helpers (`backend/src/constants`)
+
+#### [NEW] `backend/src/constants/shift.constant.js`
+- Định nghĩa các hằng số vai trò mặc định trong ca: `Bác sĩ khám chính`, `Bác sĩ phụ tá`, `Y tá hỗ trợ`, `Điều dưỡng trực`, `Tiếp đón`.
+- Hằng số Regex kiểm tra định dạng giờ (`HH:mm` hoặc `HH:mm:ss`) và định dạng ngày (`YYYY-MM-DD`).
+- Hàm helper chuyển đổi linh hoạt giữa chuỗi giờ (`"07:30"`) và đối tượng `Date` của Prisma/PostgreSQL `@db.Time(6)` (`1970-01-01T07:30:00.000Z`) cũng như format ngược lại thành chuỗi sạch cho JSON response.
+
+---
+
+### Component 2: Request Validators (`backend/src/validators`)
+
+#### [NEW] `backend/src/validators/shift.validator.js`
+Triển khai các middleware kiểm tra dữ liệu đầu vào:
+- `validateShiftId`: Kiểm tra `:id` (mã ca làm việc) trên URL params là số nguyên dương.
+- `validateShiftQuery`: Kiểm tra query params khi tìm kiếm:
+  * `date` (YYYY-MM-DD), `fromDate`, `toDate`.
+  * `roomId` (maphong), `staffId` (manv), `specialtyId` (mack).
+  * `page`, `limit` (từ 1 đến 100).
+- `validateCreateShift`: Kiểm tra khi tạo ca:
+  * `ngay`: Bắt buộc, đúng định dạng `YYYY-MM-DD`, không hợp lệ nếu là ngày trong quá khứ (tùy chọn cảnh báo).
+  * `giobatdau`, `gioketthuc`: Bắt buộc, đúng định dạng giờ, `gioketthuc > giobatdau`.
+  * `maphong`: Bắt buộc, số nguyên dương.
+  * `assignments` (tùy chọn): Mảng danh sách phân công `{ manv, vaitrotrongca }`, kiểm tra `manv` nguyên dương và tránh trùng lặp ngay trong payload.
+- `validateUpdateShift`: Kiểm tra khi sửa ca:
+  * Yêu cầu ít nhất 1 trường (`ngay`, `giobatdau`, `gioketthuc`, `maphong`).
+  * Nếu đổi giờ, đảm bảo giờ kết thúc sau giờ bắt đầu.
+- `validateAssignStaff`: Kiểm tra khi phân công nhân viên qua endpoint `POST /api/shifts/:id/assign`:
+  * `manv`: Bắt buộc, số nguyên dương.
+  * `vaitrotrongca`: Chuỗi ký tự độ dài 2 - 50 ký tự.
+- `validateStaffIdParam`: Kiểm tra `:staffId` trên URL params khi xóa phân công hoặc tra cứu lịch trực nhân viên.
+
+---
+
+### Component 3: Service Layer (`backend/src/services`)
+
+#### [DELETE] `backend/src/services/schedule.service.js`
+- Xóa tệp rỗng tạo nhầm từ git rename để thay thế bằng `shift.service.js`.
+
+#### [NEW] `backend/src/services/shift.service.js`
+Xử lý toàn bộ logic nghiệp vụ cơ sở dữ liệu:
+1. `getAllShiftsService({ date, fromDate, toDate, roomId, staffId, specialtyId, page, limit })`:
+   - Truy vấn danh sách ca làm việc kết hợp lọc linh hoạt theo phòng khám, nhân viên trực, chuyên khoa, khoảng ngày.
+   - Eager loading liên kết: `phongkham` (kèm `chuyenkhoa`), `phanconglamviec` (kèm `nhanvien` và `bacsi`).
+   - Hỗ trợ phân trang chuẩn `pagination: { total, page, limit, totalPages }`.
+2. `getShiftByIdService(maca)`:
+   - Lấy chi tiết ca làm việc theo ID, trả về thông tin đầy đủ phòng khám và danh sách nhân sự trực ca.
+   - Báo lỗi `404` nếu ca không tồn tại.
+3. `createShiftService({ ngay, giobatdau, gioketthuc, maphong, assignments })`:
+   - Kiểm tra phòng khám `maphong` tồn tại và không ở trạng thái `BaoTri`.
+   - **Phát hiện trùng lịch phòng:** Kiểm tra xem cùng ngày `ngay` tại phòng `maphong` đã có ca nào giao nhau về khoảng thời gian `(newStart < existingEnd && newEnd > existingStart)` hay chưa. Nếu có, báo lỗi `409 Conflict`.
+   - **Phát hiện trùng lịch nhân viên:** Nếu có truyền `assignments`, duyệt từng nhân viên và kiểm tra xem nhân viên đó trong ngày `ngay` có ca nào khác bị trùng giờ không.
+   - Tạo ca làm việc và phân công nhân sự trong cùng một Prisma `$transaction`.
+4. `updateShiftService(maca, updateData)`:
+   - Kiểm tra ca làm việc tồn tại.
+   - Nếu thay đổi giờ hoặc phòng khám: thực hiện kiểm tra chống trùng lịch phòng và chống trùng lịch các nhân viên đang trực ca đó.
+   - Cập nhật thông tin ca làm việc.
+5. `deleteShiftService(maca)`:
+   - Kiểm tra ca làm việc tồn tại.
+   - Thu hồi phân công và xóa ca làm việc an toàn.
+6. `assignStaffToShiftService(maca, { manv, vaitrotrongca })`:
+   - Kiểm tra ca làm việc tồn tại.
+   - Kiểm tra nhân viên `manv` tồn tại trong bảng `nhanvien`.
+   - Kiểm tra nhân viên đã có mặt trong ca này chưa (`uq_pclv_nv_ca`).
+   - **Kiểm tra chống trùng lịch nhân viên:** Nhân viên không thể trực ca khác trong cùng ngày có thời gian trùng lặp.
+   - Tạo bản ghi `phanconglamviec`.
+7. `removeStaffFromShiftService(maca, manv)`:
+   - Kiểm tra bản ghi phân công tồn tại và tiến hành xóa bỏ.
+8. `getStaffScheduleService(manv, { fromDate, toDate })`:
+   - Lấy toàn bộ danh sách ca trực của một nhân viên/bác sĩ cụ thể theo thời gian để hiển thị lịch làm việc cá nhân.
+
+---
+
+### Component 4: Controller Layer (`backend/src/controllers`)
+
+#### [NEW] `backend/src/controllers/shift.controller.js`
+- `getAllShiftsController`: Nhận query params, gọi service và trả về danh sách ca làm việc.
+- `getShiftByIdController`: Trả về chi tiết ca làm việc.
+- `createShiftController`: Trả về ca làm việc vừa tạo (status 201).
+- `updateShiftController`: Trả về ca làm việc sau khi cập nhật (status 200).
+- `deleteShiftController`: Xóa ca làm việc thành công (status 200).
+- `assignStaffController`: Phân công nhân sự vào ca (status 201).
+- `removeStaffController`: Xóa nhân sự khỏi ca (status 200).
+- `getStaffScheduleController`: Lấy lịch trực cá nhân của nhân viên (status 200).
+
+---
+
+### Component 5: Router & App Integration (`backend/src/routers` & `backend/src/app.js`)
+
+#### [NEW] `backend/src/routers/shift.router.js`
+Khai báo toàn bộ endpoints với phân quyền:
+```javascript
+// Xem danh sách ca làm việc (Authenticated)
+router.get("/", authMiddleware, validateShiftQuery, getAllShiftsController);
+
+// Xem lịch trực cá nhân của một nhân viên
+router.get("/staff/:staffId", authMiddleware, validateStaffIdParam, getStaffScheduleController);
+
+// Xem chi tiết ca làm việc
+router.get("/:id", authMiddleware, validateShiftId, getShiftByIdController);
+
+// Tạo mới ca làm việc (Chỉ Admin)
+router.post("/", authMiddleware, roleMiddleware("Admin"), validateCreateShift, createShiftController);
+
+// Cập nhật ca làm việc (Chỉ Admin)
+router.put("/:id", authMiddleware, roleMiddleware("Admin"), validateShiftId, validateUpdateShift, updateShiftController);
+
+// Xóa ca làm việc (Chỉ Admin)
+router.delete("/:id", authMiddleware, roleMiddleware("Admin"), validateShiftId, deleteShiftController);
+
+// Phân công nhân sự vào ca (Chỉ Admin)
+router.post("/:id/assign", authMiddleware, roleMiddleware("Admin"), validateShiftId, validateAssignStaff, assignStaffController);
+
+// Hủy phân công nhân sự khỏi ca (Chỉ Admin)
+router.delete("/:id/assign/:staffId", authMiddleware, roleMiddleware("Admin"), validateShiftId, validateStaffIdParam, removeStaffController);
+```
+
+#### [MODIFY] `backend/src/app.js`
+- Import `shiftRoutes` từ `./routers/shift.router`.
+- Đăng ký middleware: `app.use("/api/shifts", shiftRoutes)`.
+
+---
+
+### Component 6: Documentation Update
+
+#### [MODIFY] `API_FRONTEND_GUIDE.md`
+- Thêm **Mục 9: PHÂN HỆ QUẢN LÝ CA LÀM VIỆC & PHÂN CÔNG TRỰC (`/api/shifts`)** với đầy đủ mô tả endpoint, request body mẫu, query parameters, và response JSON chuẩn để đội ngũ Frontend dễ dàng tích hợp giao diện xếp lịch.
+
+---
+
+## 🧪 Verification Plan
+
+### Automated Tests / Validation Scripts
+Chạy kịch bản kiểm tra toàn diện API bằng test script `node` độc lập hoặc kiểm tra cú pháp và tích hợp:
+1. **Kiểm tra cú pháp & load module:**
+   ```bash
+   node -e "require('./src/app'); console.log('App loaded successfully!');"
+   ```
+2. **Kiểm tra các hàm validator và logic kiểm tra trùng lịch (Overlap helper):**
+   - Viết unit test case xác nhận logic giao nhau của thời gian:
+     * `[08:00, 11:30]` và `[11:30, 16:00]` -> Không trùng nhau (tiếp giáp).
+     * `[08:00, 12:00]` và `[10:00, 14:00]` -> Trùng nhau.
+     * `[08:00, 17:00]` bao trùm `[09:00, 11:00]` -> Trùng nhau.
+
+### Manual Verification
+1. Gọi API `GET /api/shifts` để xác nhận danh sách ca trả về rỗng hoặc đúng dữ liệu mẫu.
+2. Gọi API `POST /api/shifts` tạo ca mới với `giobatdau > gioketthuc` -> Xác nhận server trả lỗi 400 Bad Request.
+3. Gọi API `POST /api/shifts` tạo 2 ca trùng phòng và trùng giờ -> Xác nhận server trả lỗi 409 Conflict với thông báo rõ ràng.
+4. Phân công 1 nhân viên vào 2 ca trùng giờ -> Xác nhận server chặn phân công trùng lịch.
+5. Kiểm tra phân quyền: Thử gọi `POST /api/shifts` bằng tài khoản Bác sĩ hoặc Y tá -> Xác nhận trả lỗi 403 Forbidden.

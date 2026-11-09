@@ -1,0 +1,6 @@
+export { default as DoctorClinicRoom } from './DoctorClinicRoom'
+export { default as DoctorAppointments } from './DoctorAppointments'
+export { default as DoctorMedicalRecords } from './DoctorMedicalRecords'
+export { default as DoctorPrescriptions } from './DoctorPrescriptions'
+export { default as DoctorPatients } from './DoctorPatients'
+export { default as DoctorSchedule } from './DoctorSchedule'

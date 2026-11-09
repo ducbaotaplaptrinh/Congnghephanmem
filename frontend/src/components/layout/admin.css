@@ -1,0 +1,750 @@
+/* ========================================================
+   ADMIN PORTAL CSS - PHÒNG KHÁM ĐA KHOA PHÚ LỢI BẢO
+   Giao diện quản trị hiện đại, chuẩn tỉ lệ, không bị vỡ layout
+   ======================================================== */
+
+:root {
+  --ad-sidebar-width: 260px;
+  --ad-sidebar-collapsed-width: 72px;
+  --ad-topbar-height: 64px;
+  
+  --ad-bg: #f8fafc;
+  --ad-sidebar-bg: #ffffff;
+  --ad-card-bg: #ffffff;
+  --ad-border: #e2e8f0;
+  
+  --ad-primary: #1e40af;       /* Navy Blue quản trị */
+  --ad-primary-hover: #1d4ed8;
+  --ad-primary-light: #eff6ff;
+  --ad-primary-text: #1e3a8a;
+
+  --ad-success: #16a34a;
+  --ad-success-bg: #f0fdf4;
+  --ad-warning: #d97706;
+  --ad-warning-bg: #fffbeb;
+  --ad-danger: #dc2626;
+  --ad-danger-bg: #fef2f2;
+
+  --ad-slate-900: #0f172a;
+  --ad-slate-800: #1e293b;
+  --ad-slate-700: #334155;
+  --ad-slate-600: #475569;
+  --ad-slate-500: #64748b;
+  --ad-slate-400: #94a3b8;
+  --ad-slate-200: #e2e8f0;
+  --ad-slate-100: #f1f5f9;
+  --ad-slate-50: #f8fafc;
+
+  --ad-radius: 10px;
+  --ad-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --ad-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --ad-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+}
+
+/* Khung toàn màn hình Admin - GHIM CỐ ĐỊNH MENU VÀ HEADER */
+.ad-wrapper {
+  display: flex !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  background-color: var(--ad-bg) !important;
+  color: var(--ad-slate-900) !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  position: relative !important;
+}
+
+/* SIDEBAR BÊN TRÁI - GHIM CỐ ĐỊNH, KHÔNG BAO GIỜ BỊ CUỘN TRÔI */
+.ad-sidebar {
+  width: var(--ad-sidebar-width) !important;
+  min-width: var(--ad-sidebar-width) !important;
+  flex-shrink: 0 !important;
+  background-color: var(--ad-sidebar-bg) !important;
+  border-right: 1px solid var(--ad-border) !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  z-index: 1000 !important;
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.02) !important;
+  position: relative !important;
+}
+
+.ad-sidebar.collapsed {
+  width: var(--ad-sidebar-collapsed-width) !important;
+  min-width: var(--ad-sidebar-collapsed-width) !important;
+}
+
+/* Brand Logo ở đầu Sidebar */
+.ad-brand-box {
+  padding: 0.85rem 1.15rem !important;
+  border-bottom: 1px solid var(--ad-border) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  height: var(--ad-topbar-height) !important;
+  background-color: #ffffff !important;
+  overflow: hidden !important;
+}
+
+.ad-sidebar.collapsed .ad-brand-box {
+  padding: 0.5rem !important;
+  justify-content: center !important;
+}
+
+.ad-brand-link {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.65rem !important;
+  text-decoration: none !important;
+  color: inherit !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.ad-brand-logo {
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  height: 38px !important;
+  border-radius: 8px !important;
+  object-fit: cover !important;
+  border: 1px solid var(--ad-border) !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.2s ease !important;
+}
+
+.ad-collapsed-brand-btn {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+}
+
+.ad-collapsed-brand-btn:hover .ad-brand-logo {
+  transform: scale(1.08) !important;
+  box-shadow: 0 0 0 2px var(--ad-primary) !important;
+}
+
+.ad-collapsed-expand-hint {
+  position: absolute !important;
+  bottom: -4px !important;
+  right: -4px !important;
+  background-color: var(--ad-primary) !important;
+  color: #ffffff !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 9px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.ad-brand-title-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.ad-brand-name {
+  font-size: 0.88rem !important;
+  font-weight: 700 !important;
+  color: var(--ad-primary) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
+}
+
+.ad-brand-sub {
+  font-size: 0.68rem !important;
+  font-weight: 600 !important;
+  color: var(--ad-slate-500) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  white-space: nowrap !important;
+}
+
+.ad-toggle-btn {
+  background: var(--ad-slate-100);
+  border: 1px solid var(--ad-slate-200);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+  color: var(--ad-slate-600);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.ad-toggle-btn:hover {
+  background: var(--ad-primary-light) !important;
+  color: var(--ad-primary) !important;
+  border-color: var(--ad-primary) !important;
+}
+
+/* Danh sách Menu */
+.ad-nav-container {
+  padding: 0.75rem 0.65rem !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.25rem !important;
+}
+
+.ad-nav-section-title {
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  color: var(--ad-slate-400) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.8px !important;
+  padding: 0.5rem 0.65rem 0.25rem 0.65rem !important;
+  white-space: nowrap !important;
+}
+
+.ad-nav-item {
+  display: flex !important;
+  align-items: center !important;
+  padding: 0.65rem 0.85rem !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  color: var(--ad-slate-600) !important;
+  font-size: 0.85rem !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+  white-space: nowrap !important;
+  position: relative !important;
+}
+
+.ad-nav-item i {
+  font-size: 1.15rem !important;
+  min-width: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-right: 0.75rem !important;
+  flex-shrink: 0 !important;
+  transition: color 0.15s ease !important;
+}
+
+.ad-sidebar.collapsed .ad-nav-item i {
+  margin-right: 0 !important;
+  margin: 0 auto !important;
+}
+
+.ad-nav-item:hover {
+  background-color: var(--ad-slate-100) !important;
+  color: var(--ad-primary) !important;
+}
+
+.ad-nav-item.active {
+  background-color: var(--ad-primary-light) !important;
+  color: var(--ad-primary) !important;
+  font-weight: 600 !important;
+}
+
+.ad-nav-item.active i {
+  color: var(--ad-primary) !important;
+}
+
+.ad-nav-item.active::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 15% !important;
+  height: 70% !important;
+  width: 3.5px !important;
+  background-color: var(--ad-primary) !important;
+  border-radius: 0 4px 4px 0 !important;
+}
+
+/* Footer Sidebar */
+.ad-sidebar-footer {
+  padding: 0.75rem !important;
+  border-top: 1px solid var(--ad-border) !important;
+  background-color: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.35rem !important;
+}
+
+/* KHUNG NỘI DUNG CHÍNH (MAIN AREA) - GHIM KHÔNG CHO TOÀN BỘ TRANG BỊ CUỘN TRÔI */
+.ad-main-wrap {
+  flex: 1 !important;
+  min-width: 0 !important;   /* Ngăn chặn flex child tràn màn hình */
+  height: 100vh !important;
+  max-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: var(--ad-bg) !important;
+  overflow: hidden !important;
+}
+
+/* TOPBAR HEADER TRÊN CÙNG - GHIM CỐ ĐỊNH 100% */
+.ad-topbar {
+  height: var(--ad-topbar-height) !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid var(--ad-border) !important;
+  padding: 0 1.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 1.5rem !important;
+  flex-shrink: 0 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 900 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.ad-topbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.85rem !important;
+  min-width: 0 !important;
+}
+
+.ad-page-title {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: var(--ad-slate-900) !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.ad-topbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  flex-shrink: 0 !important;
+}
+
+.ad-user-pill {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.65rem !important;
+  padding: 0.3rem 0.6rem 0.3rem 0.35rem !important;
+  border: 1px solid var(--ad-border) !important;
+  border-radius: 30px !important;
+  background: var(--ad-slate-50) !important;
+}
+
+.ad-user-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: var(--ad-primary) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 0.78rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* THÂN TRANG CHÍNH - VÙNG CUỘN DUY NHẤT (HEADER VÀ MENU LUÔN GHIM CỐ ĐỊNH) */
+.ad-content-body {
+  padding: 1.25rem 1.5rem !important;
+  flex: 1 !important;
+  width: 100% !important;
+  max-width: 1440px !important;
+  margin: 0 auto !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #cbd5e1 #f8fafc !important;
+}
+
+.ad-content-body::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.ad-content-body::-webkit-scrollbar-track {
+  background: #f8fafc !important;
+}
+
+.ad-content-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 4px !important;
+}
+
+.ad-content-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+/* THẺ THỐNG KÊ DOANH THU & KPI */
+.ad-card {
+  background: #ffffff !important;
+  border: 1px solid var(--ad-border) !important;
+  border-radius: var(--ad-radius) !important;
+  box-shadow: var(--ad-shadow-sm) !important;
+  margin-bottom: 1.25rem !important;
+  overflow: hidden !important;
+}
+
+.ad-card-header {
+  padding: 1rem 1.25rem !important;
+  border-bottom: 1px solid var(--ad-border) !important;
+  background-color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.ad-card-title {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  color: var(--ad-slate-900) !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.ad-card-body {
+  padding: 1.25rem !important;
+}
+
+/* SƠ ĐỒ THỐNG KÊ DOANH THU (CHART STYLES) */
+.ad-chart-container {
+  width: 100% !important;
+  position: relative !important;
+}
+
+.ad-chart-bar-wrap {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-around !important;
+  gap: 16px !important;
+  height: 290px !important;
+  padding-top: 30px !important;
+  padding-bottom: 5px !important;
+  border-bottom: 2px solid var(--ad-slate-200) !important;
+  background-image: repeating-linear-gradient(
+    to top,
+    transparent,
+    transparent 57px,
+    rgba(226, 232, 240, 0.55) 57px,
+    rgba(226, 232, 240, 0.55) 58px
+  ) !important;
+}
+
+.ad-chart-col {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  height: 100% !important;
+  justify-content: flex-end !important;
+  position: relative !important;
+  cursor: pointer !important;
+}
+
+.ad-chart-bar {
+  width: 100% !important;
+  max-width: 50px !important;
+  border-radius: 8px 8px 0 0 !important;
+  transition: all 0.25s ease !important;
+  position: relative !important;
+}
+
+.ad-chart-bar.primary {
+  background: linear-gradient(180deg, #3b82f6 0%, #1e40af 100%) !important;
+}
+
+.ad-chart-bar.secondary {
+  background: linear-gradient(180deg, #10b981 0%, #047857 100%) !important;
+}
+
+.ad-chart-col:hover .ad-chart-bar {
+  filter: brightness(1.15) !important;
+  transform: scaleY(1.02) !important;
+}
+
+.ad-chart-tooltip {
+  position: absolute !important;
+  bottom: 105% !important;
+  background: #0f172a !important;
+  color: #ffffff !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.15s ease, transform 0.15s ease !important;
+  transform: translateY(4px) !important;
+  z-index: 10 !important;
+}
+
+.ad-chart-col:hover .ad-chart-tooltip {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.ad-chart-label {
+  margin-top: 8px !important;
+  font-size: 11.5px !important;
+  color: var(--ad-slate-500) !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+}
+
+/* 4 THẺ THỐNG KÊ DOANH THU & CHỈ SỐ GOM 1 HÀNG NGANG (DASHBOARD) */
+.ad-stats-grid-4cols {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 0.85rem !important;
+  margin-bottom: 1rem !important;
+  width: 100% !important;
+}
+
+@media (max-width: 992px) {
+  .ad-stats-grid-4cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .ad-stats-grid-4cols {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* LƯỚI BÁC SĨ 1 HÀNG 2 BÁC SĨ (CHUẨN TỶ LỆ, BỚT TRỐNG MÀN HÌNH) */
+.ad-doctor-grid-2cols {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 1.25rem !important;
+  width: 100% !important;
+}
+
+@media (max-width: 768px) {
+  .ad-doctor-grid-2cols {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Modal Scrollbar Tinh Tế & Chống Kẹt Con Lăn */
+.ad-modal-scrollable-body {
+  overflow-y: auto !important;
+  max-height: calc(85vh - 130px) !important;
+  overscroll-behavior: contain !important;
+}
+
+.ad-modal-scrollable-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ad-modal-scrollable-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.ad-modal-scrollable-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.ad-modal-scrollable-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* DOCTOR MANAGEMENT ADMIN TABLE & CARDS */
+.ad-doc-avatar {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  flex-shrink: 0 !important;
+}
+
+.ad-doc-avatar-fallback {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: var(--ad-primary-light) !important;
+  color: var(--ad-primary) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  border: 1px solid var(--ad-border) !important;
+  flex-shrink: 0 !important;
+}
+
+/* SHIMMER SKELETON LOADER */
+.ad-skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%) !important;
+  background-size: 200% 100% !important;
+  animation: ad-shimmer 1.5s infinite !important;
+  border-radius: 6px !important;
+}
+
+@keyframes ad-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* RESPONSIVE DESIGN CHO ADMIN */
+@media (max-width: 992px) {
+  .ad-sidebar {
+    position: fixed !important;
+    left: -260px !important;
+    top: 0 !important;
+    height: 100vh !important;
+    z-index: 2000 !important;
+    transition: left 0.3s ease !important;
+  }
+
+  .ad-sidebar.mobile-open {
+    left: 0 !important;
+    box-shadow: 10px 0 25px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .ad-mobile-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(15, 23, 42, 0.45) !important;
+    backdrop-filter: blur(2px) !important;
+    z-index: 1999 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .ad-content-body {
+    padding: 1rem !important;
+  }
+
+  .ad-topbar {
+    padding: 0 1rem !important;
+  }
+
+  .ad-chart-bar-wrap {
+    height: 180px !important;
+    gap: 6px !important;
+  }
+
+  .ad-chart-bar {
+    max-width: 24px !important;
+  }
+}
+
+/* ========================================================
+   CẤU HÌNH IN ẤN CHUẨN (@media print) CHO ADMIN / DOCTOR LAYOUT
+   Loại bỏ hoàn toàn overflow:hidden, cố định 100vh gây trang trắng
+   ======================================================== */
+@media print {
+  html, body {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #root,
+  .ad-wrapper,
+  .ad-main-wrap,
+  .ad-content-body {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .ad-sidebar,
+  .ad-topbar,
+  .ad-mobile-backdrop,
+  .ad-sidebar-footer,
+  .modal-backdrop,
+  .modal-header,
+  .modal-footer,
+  .btn-close,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset modal khi in */
+  .modal,
+  .prescription-modal-backdrop {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  .modal-dialog {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .modal-content {
+    position: static !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .modal-body,
+  .prescription-modal-body-scroll {
+    position: static !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+}

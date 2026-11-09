@@ -46,4 +46,28 @@ router.get(
     },
 );
 
+// ========================================================
+// QUẢN TRỊ NGƯỜI DÙNG & TÀI KHOẢN (ADMIN USERS MANAGEMENT)
+// ========================================================
+router.get(
+    "/users",
+    authMiddleware,
+    roleMiddleware("Admin", "BacSi", "LeTan"),
+    authController.getAllUsersController,
+);
+
+router.post(
+    "/users",
+    authMiddleware,
+    roleMiddleware("Admin"),
+    authController.createUserController,
+);
+
+router.put(
+    "/users/:id/status",
+    authMiddleware,
+    roleMiddleware("Admin"),
+    authController.toggleUserStatusController,
+);
+
 module.exports = router;

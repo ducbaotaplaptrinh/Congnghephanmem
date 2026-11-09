@@ -1,0 +1,531 @@
+/* ========================================================
+   DOCTOR PORTAL CSS - GIAO DIỆN BÁC SĨ CHUYÊN NGHIỆP
+   Độc lập 100%, không bị vỡ layout, tự định nghĩa Grid & Flex
+   ======================================================== */
+
+:root {
+  --pk-doc-primary: #175cdd;
+  --pk-doc-primary-hover: #1249b3;
+  --pk-doc-success: #10b981;
+  --pk-doc-warning: #f59e0b;
+  --pk-doc-danger: #ef4444;
+  --pk-doc-bg: #f1f5f9;
+  --pk-doc-card-bg: #ffffff;
+  --pk-doc-border: #e2e8f0;
+  --pk-doc-text-main: #0f172a;
+  --pk-doc-text-muted: #64748b;
+}
+
+/* Khung toàn màn hình của Cổng Bác Sĩ */
+.doctor-portal-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 100vh !important;
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  position: relative !important;
+}
+
+/* TOPBAR CỐ ĐỊNH */
+.doctor-topbar {
+  height: 64px !important;
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1020 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 24px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+.doctor-topbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+.doctor-topbar-brand {
+  display: flex !important;
+  align-items: center !important;
+  text-decoration: none !important;
+  gap: 10px !important;
+}
+
+.doctor-topbar-center {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 6px 16px !important;
+  border-radius: 9999px !important;
+  font-size: 13px !important;
+}
+
+.doctor-topbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+/* THÂN TRANG: SIDEBAR + MAIN */
+.doctor-body-container {
+  display: flex !important;
+  flex-direction: row !important;
+  flex: 1 !important;
+  position: relative !important;
+  min-height: calc(100vh - 64px - 38px) !important;
+}
+
+/* SIDEBAR DỌC BÊN TRÁI */
+.doctor-sidebar {
+  width: 250px !important;
+  flex-shrink: 0 !important;
+  background-color: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+  position: sticky !important;
+  top: 64px !important;
+  height: calc(100vh - 64px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  z-index: 1000 !important;
+}
+
+.doctor-sidebar.collapsed {
+  width: 72px !important;
+}
+
+.doctor-sidebar-nav {
+  padding: 12px 8px !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+
+.doctor-nav-link {
+  display: flex !important;
+  align-items: center !important;
+  padding: 10px 14px !important;
+  border-radius: 8px !important;
+  text-decoration: none !important;
+  color: #475569 !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  transition: all 0.15s ease !important;
+}
+
+.doctor-nav-link:hover {
+  background-color: #f1f5f9 !important;
+  color: #175cdd !important;
+}
+
+.doctor-nav-link.active {
+  background-color: #175cdd !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 4px rgba(23, 92, 221, 0.25) !important;
+}
+
+.doctor-nav-link.active .badge {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
+/* MAIN CONTENT */
+.doctor-main-content {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding-bottom: 46px !important;
+  background-color: #f1f5f9 !important;
+}
+
+.doctor-page-header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 16px 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.doctor-page-body {
+  padding: 20px 24px !important;
+  flex: 1 !important;
+}
+
+/* ========================================================
+   LƯỚI BÀN KHÁM BỆNH (CLINIC ROOM 2-COLUMN GRID)
+   ======================================================== */
+.clinic-room-grid {
+  display: grid !important;
+  grid-template-columns: 360px 1fr !important;
+  gap: 20px !important;
+  align-items: start !important;
+}
+
+@media (max-width: 1200px) {
+  .clinic-room-grid {
+    grid-template-columns: 330px 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .clinic-room-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .doctor-sidebar {
+    display: none !important;
+  }
+  .doctor-topbar-center {
+    display: none !important;
+  }
+}
+
+/* THẺ CARD TRẮNG */
+.doc-card {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05) !important;
+  overflow: hidden !important;
+}
+
+.doc-card-header {
+  padding: 14px 18px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  background-color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.doc-card-body {
+  padding: 18px !important;
+}
+
+/* HÀNG ĐỢI BỆNH NHÂN (QUEUE) */
+.queue-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  max-height: 680px !important;
+  overflow-y: auto !important;
+  padding: 12px !important;
+}
+
+.queue-item {
+  padding: 12px 14px !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  background-color: #ffffff !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+  text-align: left !important;
+}
+
+.queue-item:hover {
+  border-color: #175cdd !important;
+  background-color: #f8fafc !important;
+  transform: translateY(-1px) !important;
+}
+
+.queue-item.active {
+  border-color: #175cdd !important;
+  background-color: #eff6ff !important;
+  box-shadow: 0 0 0 1.5px #175cdd !important;
+}
+
+/* VITAL SIGNS (SINH HIỆU) */
+.vitals-grid {
+  display: grid !important;
+  grid-template-columns: repeat(6, 1fr) !important;
+  gap: 10px !important;
+}
+
+@media (max-width: 768px) {
+  .vitals-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+.vital-box {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  padding: 10px 6px !important;
+  text-align: center !important;
+}
+
+.vital-value {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  margin: 2px 0 !important;
+}
+
+/* CẢNH BÁO DỊ ỨNG */
+.allergy-alert-box {
+  background-color: #fef2f2 !important;
+  border: 1px solid #fecaca !important;
+  border-radius: 8px !important;
+  padding: 10px 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+/* STATUSBAR CHÂN TRANG - NẰM GỌN TRONG MAIN CONTENT, KHÔNG BAO GIỜ ĐÈ SIDEBAR */
+.doctor-statusbar {
+  height: 40px !important;
+  background-color: #ffffff !important;
+  border-top: 1px solid #e2e8f0 !important;
+  position: relative !important;
+  margin-top: auto !important;
+  flex-shrink: 0 !important;
+  z-index: 10 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 1.5rem !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+  box-shadow: 0 -1px 3px rgba(15, 23, 42, 0.02) !important;
+}
+
+/* ========================================================
+   GIAO DIỆN XEM TRƯỚC TOA THUỐC TRÊN MÀN HÌNH (SCREEN PREVIEW)
+   ======================================================== */
+.prescription-paper-preview {
+  background: #ffffff;
+  max-width: 780px;
+  margin: 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15), 0 1px 3px rgba(15, 23, 42, 0.08);
+  padding: 36px 44px;
+  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+/* ========================================================
+   CSS CHUYÊN DỤNG IN TOA THUỐC & BỆNH ÁN (@media print)
+   Chỉ in đúng mẫu đơn thuốc chuẩn Bộ Y Tế, chống trang trắng
+   ======================================================== */
+.prescription-modal-backdrop {
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(2px);
+}
+
+.prescription-modal-body-scroll {
+  max-height: 75vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+
+@media print {
+  /* Khôi phục toàn bộ chiều cao của trang in, không giới hạn bởi fixed viewport */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 12pt !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #root,
+  .ad-wrapper,
+  .ad-main-wrap,
+  .ad-content-body {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Ẩn triệt để tất cả các thành phần UI, thanh điều hướng, nút bấm, popups */
+  .ad-sidebar,
+  .ad-topbar,
+  .ad-mobile-backdrop,
+  .ad-sidebar-footer,
+  .doctor-topbar,
+  .doctor-sidebar,
+  .doctor-statusbar,
+  .doctor-page-header,
+  .clinic-room-grid,
+  .no-print,
+  .no-print *,
+  .card:not(.prescription-print-document):not(.medical-record-print-document),
+  .doc-card,
+  .btn,
+  button,
+  .alert,
+  nav,
+  aside,
+  header,
+  footer,
+  .modal-backdrop,
+  .modal-header,
+  .modal-footer,
+  .btn-close {
+    display: none !important;
+  }
+
+  /* Reset toàn diện cho modal để in vừa khít trang A4, không backdrop, không scrollbar */
+  .modal,
+  .prescription-modal-backdrop {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  .modal-dialog {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
+
+  .modal-content {
+    position: static !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .modal-body,
+  .prescription-modal-body-scroll {
+    position: static !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+    overflow-y: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Hiển thị vùng in chuyên dụng */
+  .print-only {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Trải rộng cột chứa bản in ra toàn trang A4 */
+  .prescription-print-col,
+  .col-12:has(.prescription-print-document),
+  .col-12:has(.medical-record-print-document) {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  /* Khung đơn thuốc và bệnh án cần in */
+  .prescription-print-document,
+  .medical-record-print-document,
+  .prescription-paper-preview {
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 8mm 12mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  .prescription-print-document *,
+  .medical-record-print-document *,
+  .prescription-paper-preview * {
+    visibility: visible !important;
+    color: #000000 !important;
+  }
+
+  .prescription-print-document table,
+  .prescription-paper-preview table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 14px 0 !important;
+  }
+
+  .prescription-print-document table th,
+  .prescription-print-document table td,
+  .prescription-paper-preview table th,
+  .prescription-paper-preview table td {
+    border: 1px solid #333333 !important;
+    padding: 6px 10px !important;
+    font-size: 11pt !important;
+  }
+
+  .prescription-print-document table th,
+  .prescription-paper-preview table th {
+    background-color: #f1f5f9 !important;
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Giữ màu sắc mã VietQR và badge khi in */
+  .prescription-print-document img,
+  .prescription-paper-preview img {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 8mm 12mm 12mm 12mm;
+  }
+}
+

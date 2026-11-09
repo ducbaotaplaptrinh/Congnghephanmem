@@ -72,7 +72,7 @@ async function createAppointmentService(user, data) {
 
     // 1. Xác định mã bệnh nhân (mabn)
     let patientId;
-    if (user.vaitro === "BenhNhan") {
+    if (user?.vaitro === "BenhNhan") {
         const patient = await prisma.benhnhan.findUnique({
             where: { matk: Number(user.matk) },
             select: { mabn: true, hoten: true },
@@ -83,7 +83,7 @@ async function createAppointmentService(user, data) {
             throw error;
         }
         patientId = patient.mabn;
-    } else if (["Admin", "LeTan"].includes(user.vaitro)) {
+    } else if (["Admin", "LeTan"].includes(user?.vaitro)) {
         if (!data.mabn) {
             const error = new Error("Vui lòng chọn hoặc cung cấp mã bệnh nhân (mabn) khi đặt lịch tại quầy!");
             error.statusCode = 400;
@@ -100,16 +100,44 @@ async function createAppointmentService(user, data) {
         }
         patientId = patient.mabn;
     } else {
-        const error = new Error("Vai trò tài khoản không có quyền đặt lịch khám!");
-        error.statusCode = 403;
-        throw error;
+        // Cho phép khách vãng lai hoặc bệnh nhân chưa đăng nhập đặt lịch trực tuyến
+        const phone = data.sdt || data.phone;
+        const name = data.hoten || data.name || data.patientName || "Bệnh Nhân Đặt Lịch";
+        if (!phone) {
+            const error = new Error("Vui lòng cung cấp số điện thoại liên hệ để đặt lịch khám!");
+            error.statusCode = 400;
+            throw error;
+        }
+        let guestPatient = await prisma.benhnhan.findFirst({
+            where: { sdt: String(phone).trim() }
+        });
+        if (!guestPatient) {
+            guestPatient = await prisma.benhnhan.create({
+                data: {
+                    hoten: String(name).trim(),
+                    gioitinh: "Nam",
+                    ngaysinh: new Date("1995-01-01"),
+                    sdt: String(phone).trim(),
+                    diachi: "Bệnh nhân đặt trực tuyến qua website"
+                }
+            });
+            await prisma.hosobenhan.create({
+                data: {
+                    mahsba: guestPatient.mabn,
+                    nhommau: "ChuaRo",
+                    tiensubenh: "Chưa ghi nhận",
+                    diung: "Không có"
+                }
+            }).catch(() => {});
+        }
+        patientId = guestPatient.mabn;
     }
 
     // 2. Kiểm tra Bác sĩ có tồn tại không
     const doctor = await prisma.bacsi.findUnique({
         where: { mabs: doctorId },
         include: {
-            nhanvien: { select: { hoten: true } },
+            nhanvien: { select: { hoten: true, manv: true } },
             chuyenkhoa: { select: { tenchuyenkhoa: true } },
         },
     });
@@ -124,9 +152,10 @@ async function createAppointmentService(user, data) {
     const appointmentMinutes = getTimeInMinutes(appointmentTimeDate);
 
     // 3. Kiểm tra ca làm việc / phân công trực của bác sĩ trong ngày
+    const staffId = doctor.nhanvien?.manv || doctorId;
     const doctorShifts = await prisma.phanconglamviec.findMany({
         where: {
-            manv: doctorId,
+            manv: staffId,
             calamviec: {
                 ngay: appointmentDate,
             },
@@ -136,30 +165,34 @@ async function createAppointmentService(user, data) {
         },
     });
 
-    if (doctorShifts.length === 0) {
-        const error = new Error(
-            `Bác sĩ ${doctor.nhanvien?.hoten} không có lịch trực vào ngày ${ngayhen}! Vui lòng tham khảo lịch làm việc của bác sĩ để chọn ngày khác.`
-        );
-        error.statusCode = 400;
-        throw error;
-    }
-
-    // Kiểm tra giờ hẹn có nằm trong khung giờ của bất kỳ ca trực nào của bác sĩ không
-    const isWithinShift = doctorShifts.some((ps) => {
-        const shiftStart = getTimeInMinutes(ps.calamviec.giobatdau);
-        const shiftEnd = getTimeInMinutes(ps.calamviec.gioketthuc);
-        return appointmentMinutes >= shiftStart && appointmentMinutes < shiftEnd;
-    });
-
-    if (!isWithinShift) {
-        const shiftTimeStrs = doctorShifts.map((ps) =>
-            `${formatTime(ps.calamviec.giobatdau)} - ${formatTime(ps.calamviec.gioketthuc)}`
-        ).join(", ");
-        const error = new Error(
-            `Giờ hẹn ${giohen} không nằm trong khung giờ làm việc của Bác sĩ ${doctor.nhanvien?.hoten} vào ngày ${ngayhen} (Các ca trực trong ngày: ${shiftTimeStrs})!`
-        );
-        error.statusCode = 400;
-        throw error;
+    let isWithinShift = false;
+    if (doctorShifts.length > 0) {
+        isWithinShift = doctorShifts.some((ps) => {
+            const shiftStart = getTimeInMinutes(ps.calamviec.giobatdau);
+            const shiftEnd = getTimeInMinutes(ps.calamviec.gioketthuc);
+            return appointmentMinutes >= shiftStart && appointmentMinutes < shiftEnd;
+        });
+        if (!isWithinShift) {
+            const shiftTimeStrs = doctorShifts.map((ps) =>
+                `${formatTime(ps.calamviec.giobatdau)} - ${formatTime(ps.calamviec.gioketthuc)}`
+            ).join(", ");
+            const error = new Error(
+                `Giờ hẹn ${giohen} không nằm trong ca trực của Bác sĩ ${doctor.nhanvien?.hoten} vào ngày ${ngayhen} (${shiftTimeStrs})!`
+            );
+            error.statusCode = 400;
+            throw error;
+        }
+    } else {
+        // Nếu chưa có phân công riêng, kiểm tra theo giờ mở cửa tiêu chuẩn của phòng khám (07:00 - 18:00)
+        const clinicOpenMinutes = 7 * 60; // 07:00
+        const clinicCloseMinutes = 18 * 60; // 18:00
+        if (appointmentMinutes < clinicOpenMinutes || appointmentMinutes > clinicCloseMinutes) {
+            const error = new Error(
+                `Giờ hẹn ${giohen} nằm ngoài giờ làm việc của phòng khám (07:00 - 18:00)! Vui lòng chọn lại giờ hẹn.`
+            );
+            error.statusCode = 400;
+            throw error;
+        }
     }
 
     // 4. THUẬT TOÁN CHỐNG TRÙNG KHUNG GIỜ (SLOT CONFLICT DETECTION)
@@ -204,7 +237,7 @@ async function createAppointmentService(user, data) {
     }
 
     // 5. Tạo lịch hẹn vào cơ sở dữ liệu
-    const initialStatus = ["Admin", "LeTan"].includes(user.vaitro) ? "DaXacNhan" : "ChoXacNhan";
+    const initialStatus = ["Admin", "LeTan"].includes(user?.vaitro) ? "DaXacNhan" : "ChoXacNhan";
 
     const newAppointment = await prisma.lichhen.create({
         data: {

@@ -1,39 +1,42 @@
-# ========================================================
-# ROOT .GITIGNORE - DỰ ÁN QUẢN LÝ PHÒNG KHÁM
-# ========================================================
-
 # Dependencies
-**/node_modules/
-**/.pnp
-**/.pnp.js
+node_modules/
+*/node_modules/
 
-# Environment Variables (Chặn tất cả file .env bảo mật)
-**/.env
-**/.env.*
-!**/.env.example
+# Production build outputs
+dist/
+dist-ssr/
+frontend/dist/
 
-# Production & Build outputs
-**/dist/
-**/build/
-**/.next/
-**/.out/
+# Environment files
+.env
+.env.local
+.env.*.local
+frontend/.env.local
+backend/.env.local
 
-# Logs & Debugging
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Logs
 logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
 
-# OS specific files
+# OS & IDE
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# IDE & Code Editor configs
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 *.sublime-workspace
 *.sublime-project
 
@@ -43,7 +46,7 @@ desktop.ini
 .cache/
 .eslintcache
 
-# Local Documentation (Tài liệu cá nhân cục bộ, không đưa lên Git)
+# Local Documentation
 AGENT_CONTEXT.md
 GIT_CHEATSHEET.md
 KE_HOACH_CHI_TIET_PHONG_KHAM.xlsx

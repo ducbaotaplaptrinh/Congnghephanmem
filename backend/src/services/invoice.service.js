@@ -75,7 +75,7 @@ function formatInvoiceResponse(invoice) {
  * 1. Khởi tạo hóa đơn từ lần khám bệnh (Đồng bộ Dịch vụ khám & Đơn thuốc vào Chi tiết hóa đơn)
  * Database Trigger `trg_cthd_update_tongtien` sẽ tự động tính và cập nhật tổng tiền
  */
-async function createInvoiceService({ malsk, phuongthuctt }) {
+async function createInvoiceService({ malsk, phuongthuctt, tongtien, phikham }) {
     const examId = Number(malsk);
 
     // 1. Kiểm tra lần khám bệnh có tồn tại không
@@ -102,14 +102,31 @@ async function createInvoiceService({ malsk, phuongthuctt }) {
         throw error;
     }
 
-    // 2. Kiểm tra lần khám này đã được lập hóa đơn chưa
+    // 2. Kiểm tra lần khám này đã được lập hóa đơn chưa, nếu có rồi thì trả về luôn (idempotent)
     const existingInvoice = await prisma.hoadon.findUnique({
         where: { malsk: examId },
+        include: {
+            benhnhan: true,
+            lichsukham: {
+                include: {
+                    bacsi: {
+                        include: {
+                            nhanvien: true,
+                            chuyenkhoa: true,
+                        },
+                    },
+                },
+            },
+            chitiethoadon: {
+                include: {
+                    dichvu: true,
+                    thuoc: true,
+                },
+            },
+        },
     });
     if (existingInvoice) {
-        const error = new Error(`Lần khám bệnh #${examId} đã được lập hóa đơn viện phí trước đó (Hóa đơn #${existingInvoice.mahd})!`);
-        error.statusCode = 409;
-        throw error;
+        return formatInvoiceResponse(existingInvoice);
     }
 
     // 3. Thực thi Transaction khởi tạo Hóa đơn và nạp các dòng ChiTietHoaDon
@@ -152,6 +169,24 @@ async function createInvoiceService({ malsk, phuongthuctt }) {
                 });
             }
         }
+
+        // Tự động tính toán tổng tiền trực tiếp bằng code để cập nhật vào hoadon
+        const allDetails = await tx.chitiethoadon.findMany({
+            where: { mahd: invoice.mahd }
+        });
+        const itemsTotal = allDetails.reduce((sum, item) => sum + Number(item.dongia) * Number(item.soluong), 0);
+
+        let finalTotal = itemsTotal;
+        if (tongtien !== undefined && Number(tongtien) > 0) {
+            finalTotal = Math.max(itemsTotal, Number(tongtien));
+        } else if (phikham !== undefined && Number(phikham) > 0) {
+            finalTotal = itemsTotal + Number(phikham);
+        }
+
+        await tx.hoadon.update({
+            where: { mahd: invoice.mahd },
+            data: { tongtien: finalTotal }
+        });
 
         return invoice.mahd;
     });

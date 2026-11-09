@@ -29,4 +29,23 @@ function authMiddleware(req, res, next) {
         });
     }
 }
+
+function optionalAuthMiddleware(req, res, next) {
+    try {
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+            const [type, token] = authHeader.split(" ");
+            if (type === "Bearer" && token) {
+                const decoded = verifyToken(token);
+                req.user = decoded;
+            }
+        }
+    } catch {
+        req.user = null;
+    }
+    next();
+}
+
 module.exports = authMiddleware;
+module.exports.optionalAuthMiddleware = optionalAuthMiddleware;
+

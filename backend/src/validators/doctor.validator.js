@@ -120,6 +120,10 @@ function validateCreateDoctor(req, res, next) {
         ngayvaolam,
         username,
         password,
+        hinhanh,
+        avatar,
+        image,
+        img,
     } = req.body;
 
     // Kiểm tra mã chuyên khoa (mack)
@@ -282,6 +286,7 @@ function validateCreateDoctor(req, res, next) {
     if (hocham) req.body.hocham = hocham.trim();
     if (diachi) req.body.diachi = diachi.trim();
     if (username) req.body.username = username.trim();
+    req.body.hinhanh = hinhanh || avatar || image || img || null;
 
     next();
 }
@@ -303,6 +308,10 @@ function validateUpdateDoctor(req, res, next) {
         username,
         password,
         trangthai,
+        hinhanh,
+        avatar,
+        image,
+        img,
     } = req.body;
 
     // Phải có ít nhất một trường dữ liệu
@@ -319,7 +328,11 @@ function validateUpdateDoctor(req, res, next) {
         ngayvaolam === undefined &&
         username === undefined &&
         password === undefined &&
-        trangthai === undefined
+        trangthai === undefined &&
+        hinhanh === undefined &&
+        avatar === undefined &&
+        image === undefined &&
+        img === undefined
     ) {
         return res.status(400).json({
             success: false,
@@ -477,6 +490,10 @@ function validateUpdateDoctor(req, res, next) {
                 message: `Trạng thái tài khoản không hợp lệ! Chỉ chấp nhận: ${validStatuses.join(", ")}`,
             });
         }
+    }
+
+    if (hinhanh !== undefined || avatar !== undefined || image !== undefined || img !== undefined) {
+        req.body.hinhanh = hinhanh !== undefined ? hinhanh : (avatar !== undefined ? avatar : (image !== undefined ? image : img));
     }
 
     next();

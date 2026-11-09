@@ -27,11 +27,11 @@ const {
 
 const router = express.Router();
 
-// 1. Khởi tạo hóa đơn từ lần khám bệnh (Admin, Lễ tân / Thu ngân)
+// 1. Khởi tạo hóa đơn từ lần khám bệnh (Admin, Lễ tân / Thu ngân, Bác sĩ khi hoàn thành ca khám)
 router.post(
     "/",
     authMiddleware,
-    roleMiddleware("Admin", "LeTan"),
+    roleMiddleware("Admin", "LeTan", "BacSi"),
     validateCreateInvoice,
     createInvoiceController,
 );
@@ -48,7 +48,7 @@ router.get(
 router.get(
     "/",
     authMiddleware,
-    roleMiddleware("Admin", "LeTan"),
+    roleMiddleware("Admin", "LeTan", "BacSi"),
     validateInvoiceQuery,
     getAllInvoicesController,
 );
@@ -80,9 +80,17 @@ router.delete(
     removeInvoiceItemController,
 );
 
-// 7. Xác nhận thanh toán viện phí
+// 7. Xác nhận thanh toán viện phí (hỗ trợ cả /pay và /payment)
 router.put(
     "/:id/pay",
+    authMiddleware,
+    roleMiddleware("Admin", "LeTan"),
+    validateInvoiceId,
+    validateInvoicePayment,
+    payInvoiceController,
+);
+router.put(
+    "/:id/payment",
     authMiddleware,
     roleMiddleware("Admin", "LeTan"),
     validateInvoiceId,
