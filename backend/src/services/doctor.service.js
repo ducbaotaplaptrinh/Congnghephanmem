@@ -292,7 +292,9 @@ async function createDoctorService(doctorData) {
         where: { mack: Number(mack) },
     });
     if (!specialty) {
-        const error = new Error(`Chuyên khoa với mã ID ${mack} không tồn tại trong hệ thống!`);
+        const error = new Error(
+            `Chuyên khoa với mã ID ${mack} không tồn tại trong hệ thống!`,
+        );
         error.statusCode = 404;
         throw error;
     }
@@ -465,19 +467,28 @@ async function updateDoctorService(mabs, updateData) {
 
     // Chuẩn bị dữ liệu cập nhật
     const doctorFields = {};
-    if (updateData.mack !== undefined) doctorFields.mack = Number(updateData.mack);
-    if (updateData.sogiayphephanhnghe !== undefined) doctorFields.sogiayphephanhnghe = updateData.sogiayphephanhnghe;
-    if (updateData.hocham !== undefined) doctorFields.hocham = updateData.hocham;
-    if (updateData.kinhnghiem !== undefined) doctorFields.kinhnghiem = Number(updateData.kinhnghiem);
-    if (updateData.hinhanh !== undefined) doctorFields.hinhanh = updateData.hinhanh || null;
+    if (updateData.mack !== undefined)
+        doctorFields.mack = Number(updateData.mack);
+    if (updateData.sogiayphephanhnghe !== undefined)
+        doctorFields.sogiayphephanhnghe = updateData.sogiayphephanhnghe;
+    if (updateData.hocham !== undefined)
+        doctorFields.hocham = updateData.hocham;
+    if (updateData.kinhnghiem !== undefined)
+        doctorFields.kinhnghiem = Number(updateData.kinhnghiem);
+    if (updateData.hinhanh !== undefined)
+        doctorFields.hinhanh = updateData.hinhanh || null;
 
     const employeeFields = {};
     if (updateData.hoten !== undefined) employeeFields.hoten = updateData.hoten;
-    if (updateData.gioitinh !== undefined) employeeFields.gioitinh = updateData.gioitinh;
-    if (updateData.ngaysinh !== undefined) employeeFields.ngaysinh = new Date(updateData.ngaysinh);
+    if (updateData.gioitinh !== undefined)
+        employeeFields.gioitinh = updateData.gioitinh;
+    if (updateData.ngaysinh !== undefined)
+        employeeFields.ngaysinh = new Date(updateData.ngaysinh);
     if (updateData.sdt !== undefined) employeeFields.sdt = updateData.sdt;
-    if (updateData.diachi !== undefined) employeeFields.diachi = updateData.diachi;
-    if (updateData.ngayvaolam !== undefined) employeeFields.ngayvaolam = new Date(updateData.ngayvaolam);
+    if (updateData.diachi !== undefined)
+        employeeFields.diachi = updateData.diachi;
+    if (updateData.ngayvaolam !== undefined)
+        employeeFields.ngayvaolam = new Date(updateData.ngayvaolam);
 
     // Thực hiện cập nhật trong Transaction
     const updatedDoctor = await prisma.$transaction(async (tx) => {
@@ -502,7 +513,9 @@ async function updateDoctorService(mabs, updateData) {
                 where: { tendangnhap: updateData.username },
             });
             if (existingAccount) {
-                const error = new Error(`Tên đăng nhập "${updateData.username}" đã tồn tại!`);
+                const error = new Error(
+                    `Tên đăng nhập "${updateData.username}" đã tồn tại!`,
+                );
                 error.statusCode = 409;
                 throw error;
             }
@@ -602,8 +615,10 @@ async function deleteDoctorService(mabs) {
 
     if (appointmentCount > 0 || historyCount > 0 || scheduleCount > 0) {
         const constraints = [];
-        if (appointmentCount > 0) constraints.push(`${appointmentCount} lịch hẹn khám`);
-        if (historyCount > 0) constraints.push(`${historyCount} lượt khám chữa bệnh`);
+        if (appointmentCount > 0)
+            constraints.push(`${appointmentCount} lịch hẹn khám`);
+        if (historyCount > 0)
+            constraints.push(`${historyCount} lượt khám chữa bệnh`);
         if (scheduleCount > 0) constraints.push(`${scheduleCount} ca làm việc`);
 
         const error = new Error(

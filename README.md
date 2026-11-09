@@ -1,87 +1,56 @@
-# Hệ Thống Quản Lý Phòng Khám (Clinic Management System)
+# Hệ thống quản lý phòng khám Phú Lợi Bảo
 
-Dự án phần mềm quản lý phòng khám toàn diện, được kiến trúc theo mô hình Client-Server hiện đại, bao gồm cổng thông tin công cộng cho bệnh nhân và hệ thống quản trị chuyên sâu cho đội ngũ y bác sĩ & nhân viên y tế.
+Ứng dụng quản lý phòng khám gồm website bệnh nhân, các màn hình quản trị, cổng bác sĩ và cổng kế toán. Frontend sử dụng React và Vite; backend cung cấp REST API bằng Node.js, Express, Prisma và PostgreSQL.
 
----
+## Thành viên nhóm
 
-## 📁 Cấu Trúc Dự Án
+| Họ và tên | Mã số sinh viên |
+| --- | --- |
+| Nguyễn Đức Bảo | 231A290113 |
+| Phạm Hữu Lợi | 231A290119 |
+| Phạm Hữu Phú | 231A290100 |
+
+## Chức năng hiện có
+
+- **Website bệnh nhân:** giới thiệu, chuyên khoa, dịch vụ, danh sách bác sĩ, đặt lịch, đăng ký và đăng nhập; tài khoản bệnh nhân có trang hồ sơ và sổ khám bệnh.
+- **Quản trị:** bảng tổng quan; danh sách lịch hẹn, bệnh nhân, bác sĩ, bệnh án, đơn thuốc, hóa đơn và tài khoản. Các thao tác cụ thể và giới hạn được mô tả trong [Hướng dẫn sử dụng admin](doc/HUONG_DAN_SU_DUNG_ADMIN.md).
+- **Bác sĩ:** bàn khám, danh sách lịch hẹn, bệnh án, đơn thuốc, bệnh nhân và lịch trực.
+- **Kế toán:** quầy thu phí, danh sách hóa đơn, sổ quỹ và báo cáo.
+- **API:** xác thực, bệnh nhân, chuyên khoa, bác sĩ, phòng, dịch vụ, ca trực, lịch hẹn, hóa đơn, thống kê, khám bệnh, thuốc và đơn thuốc.
+
+**Lưu ý:** Một số dữ liệu và thao tác trên giao diện vẫn là dữ liệu mẫu hoặc chỉ thay đổi trạng thái cục bộ. Chẳng hạn danh sách bệnh nhân có thể hiển thị dữ liệu mẫu khi API lỗi hoặc trả về danh sách rỗng; màn hình sửa bệnh nhân hiện gọi thao tác tạo mới. Cổng kế toán có sổ quỹ mẫu và thao tác tạo phiếu lưu trong trạng thái giao diện. Cần kiểm tra dữ liệu trực tiếp qua API/CSDL trước khi dùng cho nghiệp vụ thực tế.
+
+## Cấu trúc chính
 
 ```text
-clinic-management/ (QLPK)
-│
-├── frontend/                  # Ứng dụng Giao diện ReactJS (Vite)
-│   ├── public/                # Static assets & favicons
-│   ├── src/
-│   │   ├── assets/            # Hình ảnh minh họa, icons, styles
-│   │   ├── components/        # Component tái sử dụng
-│   │   │   ├── common/        # PageTitle, ScrollTop, LoadingSpinner, StatusBadge
-│   │   │   ├── layout/        # Header, Footer, MainLayout, AdminLayout
-│   │   │   ├── patient/       # PatientCard, PatientTable, PatientForm
-│   │   │   ├── doctor/        # DoctorCard, DoctorFilter
-│   │   │   └── appointment/   # AppointmentBookingForm, AppointmentCard, AppointmentTable
-│   │   │
-│   │   ├── pages/             # Các trang giao diện
-│   │   │   ├── auth/          # Login, Register
-│   │   │   ├── dashboard/     # Tổng quan quản trị phòng khám
-│   │   │   ├── patients/      # Quản lý hồ sơ bệnh nhân
-│   │   │   ├── doctors/       # Quản lý & hiển thị danh sách bác sĩ
-│   │   │   ├── appointments/  # Quản lý & đặt lịch khám bệnh
-│   │   │   ├── medical-records/ # Quản lý hồ sơ bệnh án điện tử (EMR)
-│   │   │   ├── prescriptions/ # Quản lý kê đơn thuốc
-│   │   │   ├── invoices/      # Quản lý hóa đơn & thu phí
-│   │   │   └── users/         # Phân quyền & tài khoản người dùng
-│   │   │
-│   │   ├── services/          # Tầng giao tiếp API (Axios/Fetch Client)
-│   │   │   ├── authService.js
-│   │   │   ├── patientService.js
-│   │   │   ├── doctorService.js
-│   │   │   ├── appointmentService.js
-│   │   │   ├── medicalRecordService.js
-│   │   │   ├── prescriptionService.js
-│   │   │   └── invoiceService.js
-│   │   │
-│   │   ├── hooks/             # Custom Hooks (useAuth, useAppointments, usePatients)
-│   │   ├── routes/            # Cấu hình định tuyến (AppRoutes)
-│   │   ├── context/           # React Context (AuthContext)
-│   │   ├── store/             # Global state management
-│   │   ├── utils/             # Formatters, helpers
-│   │   ├── constants/         # Role, Status, API config
-│   │   ├── App.jsx
-│   │   └── main.jsx
-│   │
-│   ├── package.json
-│   └── .env
-│
-├── backend/                   # Ứng dụng Máy chủ API Node.js + Express
-│   ├── src/
-│   │   ├── config/            # Cấu hình CSDL, CORS, JWT
-│   │   ├── routes/            # Định tuyến RESTful API endpoints
-│   │   ├── middlewares/       # Middleware xác thực, phân quyền, xử lý lỗi
-│   │   ├── controllers/       # Điều khiển luồng request/response
-│   │   ├── services/          # Xử lý logic nghiệp vụ y tế
-│   │   ├── repositories/      # Tầng truy xuất dữ liệu
-│   │   ├── models/            # Mô hình dữ liệu thực thể (Entities)
-│   │   ├── validators/        # Kiểm tra tính hợp lệ của input
-│   │   ├── utils/             # Helper mã hóa mật khẩu, JWT, response chuẩn
-│   │   ├── constants/         # HTTP status, Role, Messages
-│   │   ├── app.js             # Khởi tạo Express App
-│   │   └── server.js          # Điểm khởi chạy HTTP Server
-│   │
-│   ├── tests/                 # Unit tests (Node Test Runner)
-│   ├── migrations/            # Kịch bản khởi tạo CSDL (SQL)
-│   ├── seeds/                 # Dữ liệu mẫu khởi đầu
-│   ├── package.json
-│   └── .env
-│
-├── README.md
-└── .gitignore
+frontend/              React, Vite, trang và dịch vụ gọi API
+backend/src/           Express: routers, controllers, services, validators, middleware
+backend/prisma/        Prisma schema và migrations
+backend/.env.example   Mẫu cấu hình backend
+doc/                   Tài liệu hướng dẫn, báo cáo và kế hoạch
+  API_FRONTEND_GUIDE.md  Tài liệu tham khảo API/frontend
+  HUONG_DAN_SU_DUNG_ADMIN.md  Hướng dẫn thao tác quản trị
 ```
 
----
+## Cài đặt và chạy
 
-## 🚀 Hướng Dẫn Cài Đặt & Khởi Chạy
+Cần Node.js tương thích với các phiên bản Vite và Prisma trong `package.json`, npm và PostgreSQL. Chuẩn bị cơ sở dữ liệu phù hợp với `backend/prisma/schema.prisma`; chạy migration hoặc thiết lập schema theo môi trường của bạn trước khi sử dụng dữ liệu.
 
-### 1. Khởi chạy Frontend (ReactJS)
+### Backend
+
+1. Sao chép `backend/.env.example` thành `backend/.env` và điền cấu hình của môi trường. `DATABASE_URL` được backend dùng để kết nối PostgreSQL; `DIRECT_URL` được Prisma CLI đọc trong `prisma.config.ts`. Đặt `JWT_SECRET` riêng và cấu hình `CORS_ORIGIN` nếu cần.
+2. Trong thư mục `backend`, chạy:
+
+```bash
+npm install
+npm run dev
+```
+
+`npm install` chạy `prisma generate` qua `postinstall`. Máy chủ mặc định ở `http://localhost:5000`; mở `http://localhost:5000/` để kiểm tra phản hồi. Các script được khai báo là `dev`, `start` và `build`; dự án hiện không khai báo `npm test` hay `npm run seed` trong `backend/package.json`.
+
+### Frontend
+
+Trong một terminal khác:
 
 ```bash
 cd frontend
@@ -89,43 +58,18 @@ npm install
 npm run dev
 ```
 
-Ứng dụng frontend sẽ chạy tại: `http://localhost:5173`
+Vite thường chạy tại `http://localhost:5173`. Mặc định frontend gọi `http://localhost:5000/api`; có thể đặt `VITE_API_URL` trong `frontend/.env` nếu API ở địa chỉ khác. Build bằng `npm run build` và kiểm tra lint bằng `npm run lint` trong thư mục `frontend`.
 
-- **Trang chủ & Cổng thông tin:** `http://localhost:5173/`
-- **Đặt lịch khám:** `http://localhost:5173/dat-lich-kham`
-- **Đội ngũ bác sĩ:** `http://localhost:5173/bac-si`
-- **Bảng điều khiển quản trị (Dashboard):** `http://localhost:5173/dashboard`
-- **Đăng nhập quản trị:** `http://localhost:5173/login` (Tài khoản mẫu: `admin@phongkham.vn` / `123456`)
+## Đường dẫn thường dùng
 
-### 2. Khởi chạy Backend (Node.js + Express)
+| Trang | Đường dẫn |
+| --- | --- |
+| Trang chủ / đặt lịch | `/` / `/dat-lich-kham` |
+| Đăng nhập / đăng ký | `/login` / `/register` |
+| Quản trị | `/dashboard` |
+| Bệnh nhân / bác sĩ / lịch hẹn | `/patients` / `/doctors-manage` / `/appointments` |
+| Bệnh án / đơn thuốc / hóa đơn / tài khoản | `/medical-records` / `/prescriptions` / `/invoices` / `/users` |
+| Cổng bác sĩ | `/doctor/ban-kham` |
+| Cổng kế toán | `/accountant` hoặc `/ke-toan` |
 
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-API Server sẽ lắng nghe tại: `http://localhost:5000`
-
-- **Kiểm tra trạng thái máy chủ:** `http://localhost:5000/api/health`
-- **Chạy kiểm thử tự động:** `npm test`
-- **Nạp dữ liệu mẫu:** `npm run seed`
-
----
-
-## 🩺 Các Phân Hệ Chính
-
-1. **Cổng Thông Tin Công Cộng (Portal)**:
-   - Giới thiệu phòng khám, chuyên khoa, dịch vụ và bảng giá.
-   - Đặt lịch khám trực tuyến với form xác nhận tự động.
-   - Tra cứu đội ngũ bác sĩ chuyên khoa.
-
-2. **Hệ Thống Quản Lý Phòng Khám (Admin & Clinic Management)**:
-   - **Tổng quan (Dashboard):** Thống kê số lượng bệnh nhân, lịch hẹn trong ngày, doanh thu thu được.
-   - **Bệnh nhân (Patients):** Tiếp nhận bệnh nhân mới, quản lý hồ sơ nhân khẩu học, nhóm máu, dị ứng.
-   - **Lịch hẹn (Appointments):** Quản lý và duyệt lịch khám, xác nhận hoặc hủy lịch.
-   - **Bác sĩ (Doctors):** Quản lý hồ sơ bác sĩ, phân khoa và lịch công tác.
-   - **Bệnh án điện tử (Medical Records):** Lưu trữ chẩn đoán bệnh, triệu chứng lâm sàng và chỉ định.
-   - **Đơn thuốc (Prescriptions):** Kê đơn thuốc, liều dùng và lời dặn bác sĩ.
-   - **Hóa đơn (Invoices):** Xuất phiếu thu tiền khám và thuốc, theo dõi trạng thái thanh toán.
-   - **Tài khoản & Phân quyền (Users):** Quản lý phân quyền Quản trị viên, Bác sĩ, Tiếp tân, Dược sĩ.
+Màn hình đăng nhập điền sẵn thông tin minh họa cho từng vai trò; đăng nhập chỉ thành công nếu tài khoản tương ứng tồn tại trong cơ sở dữ liệu. Không coi thông tin điền sẵn là tài khoản triển khai mặc định.
